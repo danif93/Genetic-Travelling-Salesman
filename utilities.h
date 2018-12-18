@@ -4,8 +4,10 @@
 #include <fstream>
 #include <cmath>
 #include <algorithm>  //for random_shuffle http://cplusplus.com/reference/algorithm/random_shuffle/
+#include <set>
 
 using namespace std;
+
 
 void printMatrix(int *matrix, int rows, int cols){
     for (int i=0; i<rows; ++i){

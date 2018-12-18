@@ -25,9 +25,7 @@ void rank_generation(int *generation_rank, int *generation, int *cost_matrix, in
 
     generation_cost = new int[population];
     fill(generation_cost,generation_cost+population,0);
-    /*for (i=0; i< population; ++i){
-        generation_cost[i] = 0;  // WHY DOES IT NEED INITIALISATION????????
-    }*/
+    
     // COST VECTOR COMPUTATION
     for(i=0; i<population; ++i){
         for(j=0; j<numNodes-1; ++j){
@@ -42,6 +40,7 @@ void rank_generation(int *generation_rank, int *generation, int *cost_matrix, in
         generation_rank[i]=i;
     }
     sort_vector(generation_rank, generation_cost, population);
+    printMatrix(generation_cost,1,population);
 }
 
 void move_top(int *generation_rank, int *generation, int best_num, int numNodes){
@@ -54,8 +53,55 @@ void move_top(int *generation_rank, int *generation, int best_num, int numNodes)
     copy(copy_mat, copy_mat+best_num*numNodes, generation);
 }
 
+int* crossover_firstHalf(int *generation, int parent1, int parent2, int numNodes){
+    set<int> nodes;
+    int j,k,half,elem,*son;
+
+    half = floor(numNodes/2);
+    son = new int[numNodes];
+
+    // take first half from parent1
+    for(j=0; j<half; ++j){
+        son[j]=generation[parent1*numNodes+j];
+        nodes.insert(son[j]);
+    }
+    // add the remaining elements from parent2
+    for(k=0; k<numNodes; ++k){
+        elem = generation[parent2*numNodes+k];
+        if(nodes.find(elem)==nodes.end()){
+            son[j] = elem;
+            ++j;
+        }
+    }
+    return son;
+}
+
 void generate(int *generation, int population, int best_num, int numNodes, double mutatProb){
-    
+    int i,parent1,parent2,*son;
+
+    // generate a son for each node from bests if enough space => new generation will double best_num at the end of the for cycle
+    for(i=0; i<best_num || best_num+i==population; ++i){
+        do {    // two different parents
+            parent2 = rand()%best_num;
+        } while(parent2==i);
+
+        son = crossover_firstHalf(generation, i, parent2, numNodes);
+        copy(son, son+numNodes, generation+((best_num+i)*numNodes));
+    }
+
+    i += best_num;
+    // fill until population number
+    while(i<population){
+        parent1 = rand()%best_num;
+        do {    // two different parents
+            parent2 = rand()%best_num;
+        } while(parent2==parent1);
+
+        son = crossover_firstHalf(generation, parent1, parent2, numNodes);
+        copy(son, son+numNodes, generation+(i*numNodes));
+
+        ++i;
+    }
 }
 
 void genetic_tsp(int *cost_matrix, int numNodes, int population, int best_num, int maxIt, double mutatProb){
@@ -68,7 +114,6 @@ void genetic_tsp(int *cost_matrix, int numNodes, int population, int best_num, i
         }
     }
     // RANDOM SHUFFLE
-    srand(time(NULL));
     for (int i=0; i<population; ++i){
         random_shuffle(generation+i*numNodes, generation+(i+1)*numNodes, myRand);
     }
@@ -80,12 +125,20 @@ void genetic_tsp(int *cost_matrix, int numNodes, int population, int best_num, i
     //MOVE BEST ROWS TO TOP
     move_top(generation_rank, generation, best_num, numNodes);
 
+    if (population==best_num){
+        cout<<"Cannot generate anymore: no space in the population for new generations"<<endl;
+        return;
+    }
+
     // GENERATION ITERATION 
-    for(int i=0; i<maxIt; ++i){
+    for(int i=0; i<10; ++i){
 
         // GENERATE NEW POPULATION WITH MUTATION
         generate(generation, population, best_num, numNodes, mutatProb);
         // RANKING
+        rank_generation(generation_rank, generation, cost_matrix, numNodes, population, best_num);
+        //MOVE BEST ROWS TO TOP
+        move_top(generation_rank, generation, best_num, numNodes);
 
         // TEST EARLY STOP
     }
@@ -98,6 +151,8 @@ int main(int argc, const char* argv[]){
         cerr << "need 7 args\n";
         return 1;
     }
+
+    srand(time(NULL));
 
     chrono::high_resolution_clock::time_point t_start,t_end;
     chrono::duration<double> exec_time;
@@ -113,11 +168,15 @@ int main(int argc, const char* argv[]){
     mutatProb = atof(argv[5]);
     input_f = argv[6];
 
+    best_num = (int)population*top;
+
+    if (population<best_num){
+        cerr << "Selection greater than population size"<< endl;
+    }
+
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
-
-    best_num = (int)population*top;
 
     /////////////////////////////////////////////
     t_start = chrono::high_resolution_clock::now();
