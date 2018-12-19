@@ -6,6 +6,20 @@ int myRand(int i){
     return rand()%i;
 }
 
+double stdDev(double *array, int len){
+    double avg, var;
+    int i;
+    
+    avg = 0;
+    var = 0;
+    for(i=0; i<len; ++i)
+        avg += array[i];
+    avg /= len;
+    for(i=0; i<len; ++i)
+        var += (array[i]-avg)*(array[i]-avg);
+    return sqrt(var/len);
+}
+
 void sort_vector(int *generation_rank, int *generation_cost, int population){
     int i,j,key,key_idx; 
     for (i=1; i<population; ++i){ 
@@ -22,11 +36,8 @@ void sort_vector(int *generation_rank, int *generation_cost, int population){
     }
 }
 
-void rank_generation(int *generation_rank, int *generation, int *cost_matrix, int numNodes, int population, int best_num){
-    int i,j,source,destination,*generation_cost;
-
-    generation_cost = new int[population];
-    fill(generation_cost,generation_cost+population,0);
+void rank_generation(int *generation_rank, int *generation_cost, int *generation, int *cost_matrix, int numNodes, int population, int best_num){
+    int i,j,source,destination;
     
     // COST VECTOR COMPUTATION
     for(i=0; i<population; ++i){
@@ -48,6 +59,7 @@ void rank_generation(int *generation_rank, int *generation, int *cost_matrix, in
     }
     sort_vector(generation_rank, generation_cost, population);
     printMatrix(generation_cost,1,population);
+    return;
 }
 
 void move_top2(int *generation_rank, int *generation, int best_num, int numNodes){
