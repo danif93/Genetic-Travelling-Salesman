@@ -5,9 +5,11 @@
 #include "../genetic_ut.h"
 
 
-void genetic_tsp(int *cost_matrix, int numNodes, int population, int best_num, int maxIt, double mutatProb){
-    int *generation, *generation_cost, *generation_rank;
-
+int* genetic_tsp(int *cost_matrix, int numNodes, int population, int best_num, int maxIt, double mutatProb){
+    int *generation, *generation_copy, *generation_rank, *solution;
+    
+    solution = new int[numNodes];
+    generation_copy = new int[population*numNodes];
     generation = new int[population*numNodes];
     for (int i=0; i<population; ++i){
         for (int j=0; j<numNodes; ++j){
@@ -24,27 +26,32 @@ void genetic_tsp(int *cost_matrix, int numNodes, int population, int best_num, i
     rank_generation(generation_rank, generation, cost_matrix, numNodes, population, best_num);
 
     //MOVE BEST ROWS TO TOP
-    move_top(generation_rank, generation, best_num, numNodes);
+    move_top(generation_rank, generation, generation_copy, numNodes, best_num);
 
     if (population==best_num){
         cout<<"Cannot generate anymore: no space in the population for new generations"<<endl;
-        return;
+        copy(generation, generation+numNodes, solution);
+        return solution;
     }
 
     // GENERATION ITERATION 
-    for(int i=0; i<maxIt; ++i){
-
+    for(int i=0; i<10; ++i){
         // GENERATE NEW POPULATION WITH MUTATION
         generate(generation, population, best_num, numNodes, mutatProb);
         // RANKING
         rank_generation(generation_rank, generation, cost_matrix, numNodes, population, best_num);
         //MOVE BEST ROWS TO TOP
-        move_top(generation_rank, generation, best_num, numNodes);
-        //printMatrix(generation,population,numNodes);
+        move_top(generation_rank, generation, generation_copy, numNodes, best_num);
+        //printMatrix(generation, population, numNodes);
 
         // TEST EARLY STOP
     }
-    return;
+    copy(generation, generation+numNodes, solution);
+
+    delete generation;
+    delete generation_copy;
+
+    return solution;
 }
 
 
@@ -59,7 +66,7 @@ int main(int argc, const char* argv[]){
     chrono::high_resolution_clock::time_point t_start,t_end;
     chrono::duration<double> exec_time;
 
-    int numNodes,population,best_num,maxIt,*cost_matrix;
+    int numNodes,population,best_num,maxIt,*cost_matrix,*solution;
     double mutatProb,top;
     const char *input_f;
 
@@ -76,21 +83,25 @@ int main(int argc, const char* argv[]){
         cerr << "Selection greater than population size"<< endl;
     }
 
-
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
 
     /////////////////////////////////////////////
     t_start = chrono::high_resolution_clock::now();
     /////////////////////////////////////////////
-    genetic_tsp(cost_matrix, numNodes, population, best_num, maxIt, mutatProb);
+    solution = genetic_tsp(cost_matrix, numNodes, population, best_num, maxIt, mutatProb);
     /////////////////////////////////////////////
     t_end = chrono::high_resolution_clock::now();
     /////////////////////////////////////////////
 
     exec_time = t_end - t_start;
-    //printMatrix(cost_matrix);
     //printf("%f\n",exec_time.count());
+
+    //printMatrix(cost_matrix, numNodes, numNodes);
+    //printMatrix(solution, 1, numNodes);
+
+    delete cost_matrix;
+    delete solution;
 
     return 0;   
 }
