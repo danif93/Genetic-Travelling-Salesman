@@ -9,7 +9,7 @@ void move_top2(int *generation_rank, int *generation, int best_num, int numNodes
     copy(copy_mat, copy_mat+best_num*numNodes, generation);
 }
 
-///////////////////////// 1ST VERSION OF GENERATE: SON ALLOCATION THEN COPY /////////////////////////
+///////////////////////// 1ST VERSION OF GENERATION: SON ALLOCATION THEN COPY /////////////////////////
 int* crossover_firstHalf2(int *generation, int parent1, int parent2, int numNodes){
     set<int> nodes;
     int j,k,half,elem,*son;
@@ -33,9 +33,9 @@ int* crossover_firstHalf2(int *generation, int parent1, int parent2, int numNode
     return son;
 }
 
+
 void generate2(int *generation, int population, int best_num, int numNodes, double mutatProb){
     int i,parent1,parent2,swap1,swap2,elemSwap,*son;
-
     // generate a son for each node from bests if enough space => new generation will double best_num at the end of the for cycle
 #pragma parallel for num_threads(NUMTHREADS) private(parent1,parent2,swap1,swap2,elemSwap,son,i) schedule(static)
     for(i=0; i<population-best_num; ++i){

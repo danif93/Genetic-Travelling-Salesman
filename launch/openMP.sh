@@ -3,8 +3,8 @@ rm input.dat
 g++ -std=c++11 -O3 -o gen ../generator.cpp
 g++ -std=c++11 -O3 -Xpreprocessor -fopenmp -lomp -o omp ../gen_tsp.cpp
 
-numCities=6
-initialPop=10
+numCities=1000
+initialPop=10000
 top=0.5              #percentage of top survivor
 maxIt=100
 mutP=0.8             #probability of mutation

@@ -1,17 +1,41 @@
+/**
+gen_tsp.cpp
+Purpose: Genetic alghorithm approach for the travelling salesman problem
+
+@author Danilo Franco
+*/
+
 #include <chrono>
 #include <ctime>
 
 #include "in_out.h"
-#include "genetic_ut.h"
-#include "other_func.h"
+#include "genetic_utils.h"
+#include "other_funcs.h"
 
-#define AVGELEMS 3
+#define AVGELEMS 3 // number of elements from which the average for early-stopping is computed
 
-int* genetic_tsp(int *cost_matrix, int numNodes, int population, int best_num, int maxIt, double mutatProb, int earlyStopRounds, double earlyStopParam){
-    int i, j, *generation, *generation_copy, *generation_rank, *generation_cost, *solution;
+/**
+finds and returns the solution for the tsp
+
+@param  cost_matrix: Pointer to memory that contains the symmetric node-travelling cost matrix 
+@param  numNodes: Number of travelling-nodes in the problem
+@param  population: Number of the nodes permutation (possible solution) found at each round
+@param  top: percentage [0-1] of elements from population that are going to generate new permutation
+@param  maxIt: number of max generation rounds
+@param  mutatProb: probability [0-1] of mutation occurence in the newly generated population element
+@param  earlyStopRounds: number of latest iterations from which the average of best AVGELEMS must be computed 
+        in order to establish convergence
+@param  earlyStopParams: Comparison parameter for early stopping
+
+@return     Pointer to the found nodes permutation (integer index)
+*/
+int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int maxIt, double mutatProb, int earlyStopRounds, double earlyStopParam){
+    int i, j, best_num, *generation, *generation_copy, *generation_rank, *generation_cost, *solution;
     double avg, *lastRounds;
     chrono::high_resolution_clock::time_point t_start, t_end;
     chrono::duration<double> exec_time;
+
+    best_num = (int)population*top;
     
     lastRounds = new double[earlyStopRounds];
     solution = new int[numNodes];
@@ -58,7 +82,7 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, int best_num, i
         generate(generation, population, best_num, numNodes, mutatProb);
         t_end = chrono::high_resolution_clock::now();
         exec_time=t_end-t_start;
-        //printf("%d generation: %f\n",i+1,exec_time.count());
+        printf("%d generation: %f\n",i+1,exec_time.count());
 
         // RANKING
         t_start = chrono::high_resolution_clock::now();
@@ -66,7 +90,7 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, int best_num, i
         rank_generation(generation_rank, generation_cost, generation, cost_matrix, numNodes, population, best_num);
         t_end = chrono::high_resolution_clock::now();
         exec_time=t_end-t_start;
-        //printf("%d ranking: %f\n",i+1,exec_time.count());
+        printf("%d ranking: %f\n",i+1,exec_time.count());
 
         // compute average of best #AVGELEMS costs
         avg = 0;
@@ -98,7 +122,6 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, int best_num, i
     return solution;
 }
 
-
 int main(int argc, const char* argv[]){
     if (argc<8){
         cerr << "need 8 args\n";
@@ -107,12 +130,11 @@ int main(int argc, const char* argv[]){
 
     srand(time(NULL));
 
-    chrono::high_resolution_clock::time_point t_start,t_end;
-    chrono::duration<double> exec_time;
-
     int numNodes,population,best_num,maxIt,earlyStopRounds,earlyStopParam,*cost_matrix,*solution;
     double mutatProb,top;
     const char *input_f;
+    chrono::high_resolution_clock::time_point t_start,t_end;
+    chrono::duration<double> exec_time;
 
     numNodes = atoi(argv[1]);
     population = atoi(argv[2]);
@@ -123,10 +145,14 @@ int main(int argc, const char* argv[]){
     earlyStopParam = atof(argv[7]);
     input_f = argv[8];
 
-    best_num = (int)population*top;
-
-    if (population<best_num){
-        cerr << "Selection greater than population size"<< endl;
+    if (top<0 || top>1 || 
+        population<=0 || 
+        numNodes <=1 || 
+        maxIt <0 || 
+        mutatProb<0 || mutatProb>1 || 
+        earlyStopRounds>maxIt || earlyStopRounds<=0 || 
+        earlyStopParam<0){
+        cerr <<"Invalid argument!"<< endl;
     }
 
     cost_matrix = new int[numNodes*numNodes];
@@ -135,7 +161,7 @@ int main(int argc, const char* argv[]){
     /////////////////////////////////////////////
     t_start = chrono::high_resolution_clock::now();
     /////////////////////////////////////////////
-    solution = genetic_tsp(cost_matrix, numNodes, population, best_num, maxIt, mutatProb, earlyStopRounds, earlyStopParam);
+    solution = genetic_tsp(cost_matrix, numNodes, population, top, maxIt, mutatProb, earlyStopRounds, earlyStopParam);
     /////////////////////////////////////////////
     t_end = chrono::high_resolution_clock::now();
     /////////////////////////////////////////////
