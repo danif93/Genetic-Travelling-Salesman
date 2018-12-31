@@ -12,10 +12,11 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #include "genetic_utils.h"
 #include "other_funcs.h"
 
-#define AVGELEMS 3 // number of elements from which the average for early-stopping is computed
+#define AVGELEMS 3  //number of elements from which the average for early-stopping is computed
+#define prints
 
 /**
-finds and returns the solution for the tsp
+Finds and returns the solution for the tsp
 
 @param  cost_matrix: Pointer to memory that contains the symmetric node-travelling cost matrix 
 @param  numNodes: Number of travelling-nodes in the problem
@@ -24,73 +25,71 @@ finds and returns the solution for the tsp
 @param  maxIt: number of max generation rounds
 @param  mutatProb: probability [0-1] of mutation occurence in the newly generated population element
 @param  earlyStopRounds: number of latest iterations from which the average of best AVGELEMS must be computed 
-        in order to establish convergence
+            in order to establish convergence
 @param  earlyStopParams: Comparison parameter for early stopping
 
 @return     Pointer to the found nodes permutation (integer index)
 */
 int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int maxIt, double mutatProb, int earlyStopRounds, double earlyStopParam){
-    int i, j, best_num, *generation, *generation_copy, *generation_rank, *generation_cost, *solution;
+    int i, j, best_num, probCentile, *generation, *generation_copy, *generation_rank, *generation_cost, *solution;
     double avg, *lastRounds;
     chrono::high_resolution_clock::time_point t_start, t_end;
     chrono::duration<double> exec_time;
 
-    best_num = (int)population*top;
+    best_num = population*top;
+    probCentile = mutatProb*100;
     
     lastRounds = new double[earlyStopRounds];
     solution = new int[numNodes];
-    generation_copy = new int[population*numNodes];
     generation = new int[population*numNodes];
-    for (i=0; i<population; ++i){
-        for (int j=0; j<numNodes; ++j){
-            generation[i*numNodes+j] = j;
-        }
-    }
-    // RANDOM SHUFFLE
-    t_start = chrono::high_resolution_clock::now();
-    for (i=0; i<population; ++i){
-        random_shuffle(generation+i*numNodes, generation+(i+1)*numNodes, myRand);
-    }
-    t_end = chrono::high_resolution_clock::now();
-    exec_time=t_end-t_start;
-    //printf("Random shuffle: %f\n",exec_time.count());
-    
-    // FIRST RANKING
+    generation_copy = new int[population*numNodes];
     generation_rank = new int[population];
     generation_cost = new int[population];
-    t_start = chrono::high_resolution_clock::now();
-    fill(generation_cost, generation_cost+population, 0);
+
+    // SEQUENTIAL INITIALISATION && RANDOM SHUFFLE (over a single row)
+    for (i=0; i<population; ++i){
+        for (j=0; j<numNodes; ++j)
+            generation[i*numNodes+j] = j;
+        random_shuffle(generation+i*numNodes, generation+(i+1)*numNodes, myRand);
+    }
+    
+    // FIRST RANKING
     rank_generation(generation_rank, generation_cost, generation, cost_matrix, numNodes, population, best_num);
-    t_end = chrono::high_resolution_clock::now();
-    exec_time=t_end-t_start;
-    //printf("first ranking: %f\n",exec_time.count());
 
     //MOVE BEST ROWS TO TOP
     move_top(generation_rank, generation, generation_copy, numNodes, best_num);
 
     if (population==best_num){
+#ifdef prints
         printf("Cannot generate anymore: no space in the population for new generations\n");
+#endif
         copy(generation, generation+numNodes, solution);
         return solution;
     }
 
     // GENERATION ITERATION 
     for(i=0; i<maxIt; ++i){
-        //printf("Iteration %d\n", i+1);
+#ifdef prints
+        printf("#%d\n", i+1);
+#endif
+
         // GENERATE NEW POPULATION WITH MUTATION
         t_start = chrono::high_resolution_clock::now();
-        generate(generation, population, best_num, numNodes, mutatProb);
+        generate(generation, population, best_num, numNodes, probCentile);
         t_end = chrono::high_resolution_clock::now();
         exec_time=t_end-t_start;
-        printf("%d generation: %f\n",i+1,exec_time.count());
+#ifdef prints
+        printf("\tgeneration: %f\n",exec_time.count());
+#endif
 
         // RANKING
         t_start = chrono::high_resolution_clock::now();
-        fill(generation_cost, generation_cost+population, 0);
         rank_generation(generation_rank, generation_cost, generation, cost_matrix, numNodes, population, best_num);
         t_end = chrono::high_resolution_clock::now();
         exec_time=t_end-t_start;
-        printf("%d ranking: %f\n",i+1,exec_time.count());
+#ifdef prints
+        printf("\tranking: %f\n",exec_time.count());
+#endif
 
         // compute average of best #AVGELEMS costs
         avg = 0;
@@ -98,14 +97,18 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int
             avg += generation_cost[j];
         }
         lastRounds[i%earlyStopRounds]= avg/AVGELEMS;
+#ifdef prints
+        printf("\tbest %d average travelling cost: %f\n",AVGELEMS,lastRounds[i%earlyStopRounds]);
+#endif
         
         //MOVE BEST ROWS TO TOP
         move_top(generation_rank, generation, generation_copy, numNodes, best_num);
-        //printMatrix(generation, population, numNodes);
-        
-        // TEST EARLY STOP
+
+        // TEST EARLY STOP (with short-circuit to ensure that lastRounds is filled before computing the stdDev over it)
         if(i>earlyStopRounds && stdDev(lastRounds, earlyStopRounds)<=earlyStopParam){
-            //printf("Early stop!\n\n");
+#ifdef prints
+            printf("\n\t\tEarly stop!\n\n");
+#endif
             break;
         }
     }
@@ -118,7 +121,6 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int
     delete generation_rank;
     delete generation_cost;
 
-    printf("Ended at iteration: %d\n",i);
     return solution;
 }
 
@@ -152,11 +154,13 @@ int main(int argc, const char* argv[]){
         mutatProb<0 || mutatProb>1 || 
         earlyStopRounds>maxIt || earlyStopRounds<=0 || 
         earlyStopParam<0){
-        cerr <<"Invalid argument!"<< endl;
+        cerr <<"Invalid arguments!"<< endl;
     }
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
+    //printMatrix(cost_matrix, numNodes, numNodes);
+
 
     /////////////////////////////////////////////
     t_start = chrono::high_resolution_clock::now();
@@ -165,12 +169,12 @@ int main(int argc, const char* argv[]){
     /////////////////////////////////////////////
     t_end = chrono::high_resolution_clock::now();
     /////////////////////////////////////////////
-
     exec_time = t_end - t_start;
-    printf("%f\n",exec_time.count());
 
-    //printMatrix(cost_matrix, numNodes, numNodes);
+#ifdef prints
+    printf("\nTotal execution cost: %f\n\n",exec_time.count());
     //printMatrix(solution, 1, numNodes);
+#endif
 
     delete cost_matrix;
     delete solution;

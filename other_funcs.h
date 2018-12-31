@@ -1,3 +1,20 @@
+//////////////////// 1ST VERSION: INSERTION SORT ////////////////////////
+void insertionSort(int *generation_rank, int *generation_cost, int high){
+    int i,j,key,key_idx; 
+    for (i=1; i<=high; ++i){ 
+        key = generation_cost[i];
+        key_idx = generation_rank[i];
+        j = i-1; 
+        while (j>=0 && generation_cost[j]>key){ 
+            generation_cost[j+1] = generation_cost[j];
+            generation_rank[j+1] = generation_rank[j];
+            j = j-1; 
+        } 
+        generation_cost[j+1] = key;
+        generation_rank[j+1] = key_idx;
+    }
+}
+
 //////////////////// 1ST VERSION: NEW ALLOCATION WITH COPY ////////////////////////
 void move_top2(int *generation_rank, int *generation, int best_num, int numNodes){
     int i,*start,*copy_mat;
@@ -32,7 +49,6 @@ int* crossover_firstHalf2(int *generation, int parent1, int parent2, int numNode
     }
     return son;
 }
-
 
 void generate2(int *generation, int population, int best_num, int numNodes, double mutatProb){
     int i,parent1,parent2,swap1,swap2,elemSwap,*son;

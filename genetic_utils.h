@@ -11,7 +11,7 @@ Purpose: Utility funcytions for gen_tsp.cpp
 #define NUMTHREADS 4
 
 /**
-random number generator for the std::random_shuffle method of <algorithm>
+Random number generator for the std::random_shuffle method of <algorithm>
 
 @param  i: current element to be swapped
 
@@ -20,8 +20,9 @@ random number generator for the std::random_shuffle method of <algorithm>
 int myRand(int i){
     return rand()%i;
 }
+
 /**
-compute and return the standard deviation of an array
+Compute and return the standard deviation of an array
 
 @param  array: Pointer to the array from which the standard deviation is computed
 @param  len: Array length
@@ -43,31 +44,84 @@ double stdDev(double *array, int len){
 }
 
 /**
-sort an array and apply the same operation to an index array in order to keep track of the sorted positions
+Swap two integer
 
-@version 1.0 (insertion sort)
+@param  a: pointer to the first element to be swapped
+@param  b: pointer to the second element to be swapped
+*/
+void swap_intElem(int* a, int* b) { 
+    int n = *a; 
+    *a = *b; 
+    *b = n; 
+}
+
+/**
+This function takes the last number as the pivot and places it such that all the smaller elements are on its left 
+    and the greaters on its right; since all the newborn permutation are put at the end of the generation matrix, taking
+    the last element as the pivot might end up near the best scenario for quicksort (pivot=middle)
+
+@param  generation_rank: Index array
+@param  generation_cost: Sorting array
+@param  low: starting sorting index
+@param  high: ending sorting index
+
+@return     pivot correct position
+*/
+int partition (int *generation_rank, int *generation_cost, int low, int high) { 
+    int pivot,i,j;
+    pivot = generation_cost[high];
+    i = low-1; 
+  
+    for (j=low; j<=high-1; j++) { 
+        //current element <= pivot: put it at the first free spot on the left
+        if (generation_cost[j] <= pivot) { 
+            i++;    //next free spot
+            swap_intElem(&generation_cost[i], &generation_cost[j]);
+            swap_intElem(&generation_rank[i], &generation_rank[j]);
+        } 
+    }
+    //place the pivot after all the smaller elements
+    swap_intElem(&generation_cost[i+1], &generation_cost[high]);
+    swap_intElem(&generation_rank[i+1], &generation_rank[high]);
+    return i+1; 
+} 
+  
+/**
+QuickSort: assume a pivot and place it in his correct position (smallers on its left, greaters on its right);
+    repeat recursively on the two parts (smallers and greaters)
+
+@param  generation_rank: Index array
+@param  generation_cost: Sorting array
+@param  low: starting sorting index
+@param  high: ending sorting index
+*/
+void quickSort(int *generation_rank, int *generation_cost, int low, int high) { 
+    if (low<high) { 
+        int pIdx = partition(generation_rank, generation_cost, low, high); 
+        
+        quickSort(generation_rank, generation_cost, low, pIdx-1); 
+        quickSort(generation_rank, generation_cost, pIdx+1, high); 
+    } 
+}
+
+/**
+Sort an array and apply the same operation to an index array in order to keep track of the sorted row positions
+
+@version 2.0 (quickSort)
 @param  generation_rank: Index array
 @param  generation_cost: Sorting array
 @param  population: Array length 
 */
 void sort_vector(int *generation_rank, int *generation_cost, int population){
-    int i,j,key,key_idx; 
-    for (i=1; i<population; ++i){ 
-        key = generation_cost[i];
-        key_idx = generation_rank[i];
-        j = i-1; 
-        while (j>=0 && generation_cost[j]>key){ 
-            generation_cost[j+1] = generation_cost[j];
-            generation_rank[j+1] = generation_rank[j];
-            j = j-1; 
-        } 
-        generation_cost[j+1] = key;
-        generation_rank[j+1] = key_idx;
-    }
+    int low,high;
+    low=0;
+    high=population-1;
+
+    quickSort(generation_rank, generation_cost, low, high);
 }
 
 /**
-compute the permutation cost for the current generation and rank them
+Compute the permutation cost for the current generation and rank them
 
 @param  generation_rank: Pointer to the index array
 @param  generation_cost: pointer to the total permutation cost array
@@ -80,7 +134,8 @@ compute the permutation cost for the current generation and rank them
 void rank_generation(int *generation_rank, int *generation_cost, int *generation, int *cost_matrix, int numNodes, int population, int best_num){
     int i,j,source,destination;
     
-    // COST VECTOR COMPUTATION & RANK INITIALISATION 
+    // COST VECTOR COMPUTATION & RANK INITIALISATION
+    fill(generation_cost, generation_cost+population, 0);
     // (tests showed that the overhead of handle parallelisation here outweights the benefits even for big matrices 100000x1000)
 //#pragma omp parallel for num_threads(NUMTHREADS) private(source,destination,i) schedule(static)
     for(i=0; i<population; ++i){
@@ -99,12 +154,11 @@ void rank_generation(int *generation_rank, int *generation_cost, int *generation
     }
 
     sort_vector(generation_rank, generation_cost, population);
-    //printMatrix(generation_cost,1,population);
     return;
 }
 
 /**
-move rows in the generation matrix according to the sorted index array
+Move rows in the generation matrix according to the sorted index array
 
 @param  generation_rank: Pointer to the index array
 @param  generation: Pointer to the permutation matrix (population*nodes) for the current iteration
@@ -124,7 +178,7 @@ void move_top(int *generation_rank, int *&generation, int *&generation_copy, int
 }
 
 /**
-generates new permutation from two parents: first half from parent1 and all the remaining from parent2 (in order as well) +
+Generates new permutation from two parents: first half from parent1 and all the remaining from parent2 (in order as well) +
     + mutation: swap between two random nodes
 
 @param  generation: Pointer to the permutation matrix (population*nodes) for the current iteration
@@ -134,7 +188,7 @@ generates new permutation from two parents: first half from parent1 and all the 
 @param  numNodes: Number of travelling-nodes in the problem
 @param  mutatProb: probability [0-1] of mutation occurence in the newly generated population element
 */
-void crossover_firstHalf_withMutation(int *generation, int parent1, int parent2, int son, int numNodes, double mutatProb){
+void crossover_firstHalf_withMutation(int *generation, int parent1, int parent2, int son, int numNodes, int probCentile){
     set<int> nodes;
     int j,k,half,elem,swap1,swap2;
 
@@ -155,7 +209,7 @@ void crossover_firstHalf_withMutation(int *generation, int parent1, int parent2,
         }
     }
     // MUTATION
-    if((rand()%100+1)<=(mutatProb*100)){
+    if((rand()%100+1)<=probCentile){
         swap1=rand()%numNodes;
         do {
             swap2=rand()%numNodes;
@@ -169,7 +223,7 @@ void crossover_firstHalf_withMutation(int *generation, int parent1, int parent2,
 }
 
 /**
-having the sorted generation matrix, fill it from the last parent index untill the end with the chosen crossover
+Having the sorted generation matrix, fill it from the last parent index untill the end with the chosen crossover
 
 @param  generation: Pointer to the permutation matrix (population*nodes) for the current iteration
 @param  population: Number of the nodes permutation (possible solution) found at each round
@@ -177,18 +231,16 @@ having the sorted generation matrix, fill it from the last parent index untill t
 @param  numNodes: Number of travelling-nodes in the problem
 @param  mutatProb: probability [0-1] of mutation occurence in the newly generated population element
 */
-void generate(int *generation, int population, int best_num, int numNodes, double mutatProb){
+void generate(int *generation, int population, int best_num, int numNodes, int probCentile){
     int i,parent1,parent2,son;
 
     // fill from bestnum until all population is reached
 #pragma omp parallel for num_threads(NUMTHREADS) private(parent1,parent2,son,i) schedule(static)
     for(i=0; i<population-best_num; ++i){
-        if (i<best_num){  // each best must generate at least one son
+        if (i<best_num) // each best must generate at least one son
             parent1 = i;          
-        }
-        else{
+        else
             parent1 = rand()%best_num;
-        }
 
         do {    // two different parents
             parent2 = rand()%best_num;
@@ -196,6 +248,6 @@ void generate(int *generation, int population, int best_num, int numNodes, doubl
         
         son = (best_num+i)*numNodes;
 
-        crossover_firstHalf_withMutation(generation, parent1, parent2, son, numNodes, mutatProb);    
+        crossover_firstHalf_withMutation(generation, parent1, parent2, son, numNodes, probCentile);    
     }
 }
