@@ -13,7 +13,7 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #include "other_funcs.h"
 
 #define AVGELEMS 3  //number of elements from which the average for early-stopping is computed
-#define prints
+#define PRINTS
 
 /**
 Finds and returns the solution for the tsp
@@ -60,7 +60,7 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int
     move_top(generation_rank, generation, generation_copy, numNodes, best_num);
 
     if (population==best_num){
-#ifdef prints
+#ifdef PRINTS
         printf("Cannot generate anymore: no space in the population for new generations\n");
 #endif
         copy(generation, generation+numNodes, solution);
@@ -69,7 +69,7 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int
 
     // GENERATION ITERATION 
     for(i=0; i<maxIt; ++i){
-#ifdef prints
+#ifdef PRINTS
         printf("#%d\n", i+1);
 #endif
 
@@ -78,7 +78,7 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int
         generate(generation, population, best_num, numNodes, probCentile);
         t_end = chrono::high_resolution_clock::now();
         exec_time=t_end-t_start;
-#ifdef prints
+#ifdef PRINTS
         printf("\tgeneration: %f\n",exec_time.count());
 #endif
 
@@ -87,7 +87,7 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int
         rank_generation(generation_rank, generation_cost, generation, cost_matrix, numNodes, population, best_num);
         t_end = chrono::high_resolution_clock::now();
         exec_time=t_end-t_start;
-#ifdef prints
+#ifdef PRINTS
         printf("\tranking: %f\n",exec_time.count());
 #endif
 
@@ -97,7 +97,7 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int
             avg += generation_cost[j];
         }
         lastRounds[i%earlyStopRounds]= avg/AVGELEMS;
-#ifdef prints
+#ifdef PRINTS
         printf("\tbest %d average travelling cost: %f\n",AVGELEMS,lastRounds[i%earlyStopRounds]);
 #endif
         
@@ -106,7 +106,7 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int
 
         // TEST EARLY STOP (with short-circuit to ensure that lastRounds is filled before computing the stdDev over it)
         if(i>earlyStopRounds && stdDev(lastRounds, earlyStopRounds)<=earlyStopParam){
-#ifdef prints
+#ifdef PRINTS
             printf("\n\t\tEarly stop!\n\n");
 #endif
             break;
@@ -155,6 +155,7 @@ int main(int argc, const char* argv[]){
         earlyStopRounds>maxIt || earlyStopRounds<=0 || 
         earlyStopParam<0){
         cerr <<"Invalid arguments!"<< endl;
+        return 1;
     }
 
     cost_matrix = new int[numNodes*numNodes];
@@ -171,7 +172,7 @@ int main(int argc, const char* argv[]){
     /////////////////////////////////////////////
     exec_time = t_end - t_start;
 
-#ifdef prints
+#ifdef PRINTS
     printf("\nTotal execution cost: %f\n\n",exec_time.count());
     //printMatrix(solution, 1, numNodes);
 #endif

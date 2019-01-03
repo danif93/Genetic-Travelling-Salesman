@@ -1,20 +1,3 @@
-//////////////////// 1ST VERSION: INSERTION SORT ////////////////////////
-void insertionSort(int *generation_rank, int *generation_cost, int high){
-    int i,j,key,key_idx; 
-    for (i=1; i<=high; ++i){ 
-        key = generation_cost[i];
-        key_idx = generation_rank[i];
-        j = i-1; 
-        while (j>=0 && generation_cost[j]>key){ 
-            generation_cost[j+1] = generation_cost[j];
-            generation_rank[j+1] = generation_rank[j];
-            j = j-1; 
-        } 
-        generation_cost[j+1] = key;
-        generation_rank[j+1] = key_idx;
-    }
-}
-
 //////////////////// 1ST VERSION: NEW ALLOCATION WITH COPY ////////////////////////
 void move_top2(int *generation_rank, int *generation, int best_num, int numNodes){
     int i,*start,*copy_mat;

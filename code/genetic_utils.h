@@ -8,6 +8,8 @@ Purpose: Utility funcytions for gen_tsp.cpp
 #include <cmath>        // rand
 #include <algorithm>    // random_shuffle, copy, fill
 
+#include "sorting_utils.h"
+
 #define NUMTHREADS 4
 
 /**
@@ -44,67 +46,6 @@ double stdDev(double *array, int len){
 }
 
 /**
-Swap two integer
-
-@param  a: pointer to the first element to be swapped
-@param  b: pointer to the second element to be swapped
-*/
-void swap_intElem(int* a, int* b) { 
-    int n = *a; 
-    *a = *b; 
-    *b = n; 
-}
-
-/**
-This function takes the last number as the pivot and places it such that all the smaller elements are on its left 
-    and the greaters on its right; since all the newborn permutation are put at the end of the generation matrix, taking
-    the last element as the pivot might end up near the best scenario for quicksort (pivot=middle)
-
-@param  generation_rank: Index array
-@param  generation_cost: Sorting array
-@param  low: starting sorting index
-@param  high: ending sorting index
-
-@return     pivot correct position
-*/
-int partition (int *generation_rank, int *generation_cost, int low, int high) { 
-    int pivot,i,j;
-    pivot = generation_cost[high];
-    i = low-1; 
-  
-    for (j=low; j<=high-1; j++) { 
-        //current element <= pivot: put it at the first free spot on the left
-        if (generation_cost[j] <= pivot) { 
-            i++;    //next free spot
-            swap_intElem(&generation_cost[i], &generation_cost[j]);
-            swap_intElem(&generation_rank[i], &generation_rank[j]);
-        } 
-    }
-    //place the pivot after all the smaller elements
-    swap_intElem(&generation_cost[i+1], &generation_cost[high]);
-    swap_intElem(&generation_rank[i+1], &generation_rank[high]);
-    return i+1; 
-} 
-  
-/**
-QuickSort: assume a pivot and place it in his correct position (smallers on its left, greaters on its right);
-    repeat recursively on the two parts (smallers and greaters)
-
-@param  generation_rank: Index array
-@param  generation_cost: Sorting array
-@param  low: starting sorting index
-@param  high: ending sorting index
-*/
-void quickSort(int *generation_rank, int *generation_cost, int low, int high) { 
-    if (low<high) { 
-        int pIdx = partition(generation_rank, generation_cost, low, high); 
-        
-        quickSort(generation_rank, generation_cost, low, pIdx-1); 
-        quickSort(generation_rank, generation_cost, pIdx+1, high); 
-    } 
-}
-
-/**
 Sort an array and apply the same operation to an index array in order to keep track of the sorted row positions
 
 @version 2.0 (quickSort)
@@ -117,6 +58,11 @@ void sort_vector(int *generation_rank, int *generation_cost, int population){
     low=0;
     high=population-1;
 
+    /*
+    #pragma omp parallel num_threads(NUMTHREADS)
+    #pragma omp single
+    mergesort(generation_cost, generation_rank, low, high, NUMTHREADS, population);
+    */
     quickSort(generation_rank, generation_cost, low, high);
 }
 
