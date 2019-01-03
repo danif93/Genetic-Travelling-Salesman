@@ -62,10 +62,10 @@ void quickSort(int *generation_rank, int *generation_cost, int low, int high) {
 
 /////////////////////// MERGE SORT ///////////////////////
 void merge (int* generation_cost, int* generation_rank, int *temp, int low, int mid, int high) {
-
-    int i=low;
-    int j=mid+1;
-    int k=low;
+    int i,j,k;
+    i=low;
+    j=mid+1;
+    k=low;
         
     while (i<=mid && j<=high) {
         if (generation_cost[i] <= generation_cost[j]){
@@ -121,9 +121,9 @@ void mergesort (int* generation_cost, int* generation_rank, int low, int high, i
             end = start+q;
             rem--;
         }
-        else {
+        else
             end = start+q-1;
-        }
+
         #pragma omp task
         mergesort_help(generation_cost, generation_rank, temp, start, end);
         start = end+1;
@@ -145,22 +145,21 @@ void mergesort (int* generation_cost, int* generation_rank, int low, int high, i
             hh=ll+q;
             rem--;
         }
-        else{
+        else
             hh=ll+q-1;
-        } 
+
         idx[kk+1]=hh;
     }
 
     while (k != 1) {
-        for(kk=0; kk<k; kk+=2) {
+        for(kk=0; kk<k-1; kk+=2) {
             #pragma omp task shared(idx)        
             merge(generation_cost, generation_rank, temp, idx[kk]+int(kk!=0), idx[kk+1], idx[kk+2]);
         }
         #pragma omp taskwait
 
-        for(kk=0; kk<k; kk+=2) {
+        for(kk=0; kk<k; kk+=2)
             idx[kk/2+1]= idx[kk+2];
-        }
 
         flag = k&1; // remainder
         k = k>>1;

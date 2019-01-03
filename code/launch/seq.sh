@@ -15,3 +15,6 @@ earlyStParam=1
 ./seq $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam input.dat
 
 rm gen seq
+
+#mpic++ -std=c++11 -o proj/launch proj/mpi.cpp
+#mpiexec -machinefile proj/nodelist proj/launch

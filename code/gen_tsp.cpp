@@ -13,7 +13,7 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #include "other_funcs.h"
 
 #define AVGELEMS 3  //number of elements from which the average for early-stopping is computed
-#define PRINTS
+//#define PRINTS
 
 /**
 Finds and returns the solution for the tsp
@@ -70,7 +70,7 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int
     // GENERATION ITERATION 
     for(i=0; i<maxIt; ++i){
 #ifdef PRINTS
-        printf("#%d\n", i+1);
+        printf("#%d\n",i+1);
 #endif
 
         // GENERATE NEW POPULATION WITH MUTATION
@@ -99,6 +99,7 @@ int* genetic_tsp(int *cost_matrix, int numNodes, int population, double top, int
         lastRounds[i%earlyStopRounds]= avg/AVGELEMS;
 #ifdef PRINTS
         printf("\tbest %d average travelling cost: %f\n",AVGELEMS,lastRounds[i%earlyStopRounds]);
+        printf("\tbest %d standard deviation: %f\n",AVGELEMS,stdDev(lastRounds, earlyStopRounds));
 #endif
         
         //MOVE BEST ROWS TO TOP

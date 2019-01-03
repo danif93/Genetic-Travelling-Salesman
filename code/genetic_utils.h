@@ -57,13 +57,11 @@ void sort_vector(int *generation_rank, int *generation_cost, int population){
     int low,high;
     low=0;
     high=population-1;
-
-    /*
+    
     #pragma omp parallel num_threads(NUMTHREADS)
     #pragma omp single
     mergesort(generation_cost, generation_rank, low, high, NUMTHREADS, population);
-    */
-    quickSort(generation_rank, generation_cost, low, high);
+    //quickSort(generation_rank, generation_cost, low, high);
 }
 
 /**
@@ -79,7 +77,10 @@ Compute the permutation cost for the current generation and rank them
 */
 void rank_generation(int *generation_rank, int *generation_cost, int *generation, int *cost_matrix, int numNodes, int population, int best_num){
     int i,j,source,destination;
-    
+    chrono::high_resolution_clock::time_point t_start, t_end;
+    chrono::duration<double> exec_time;
+
+    t_start = chrono::high_resolution_clock::now();
     // COST VECTOR COMPUTATION & RANK INITIALISATION
     fill(generation_cost, generation_cost+population, 0);
     // (tests showed that the overhead of handle parallelisation here outweights the benefits even for big matrices 100000x1000)
@@ -98,8 +99,15 @@ void rank_generation(int *generation_rank, int *generation_cost, int *generation
         
         generation_rank[i]=i;
     }
+    t_end = chrono::high_resolution_clock::now();
+    exec_time=t_end-t_start;
+    printf("\tpath computation: %f\n",exec_time.count());
 
+    t_start = chrono::high_resolution_clock::now();
     sort_vector(generation_rank, generation_cost, population);
+    t_end = chrono::high_resolution_clock::now();
+    exec_time=t_end-t_start;
+    printf("\tsorting: %f\n\n",exec_time.count());
     return;
 }
 
