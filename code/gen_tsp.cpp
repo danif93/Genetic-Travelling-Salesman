@@ -15,7 +15,7 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 
 #define AVGELEMS 3  //number of elements from which the average for early-stopping is computed
 #define TRANSFERRATE 10
-//#define PRINTS
+#define PRINTS
 
 /**
 Finds and returns the solution for the tsp
@@ -32,7 +32,7 @@ Finds and returns the solution for the tsp
 
 @return     Pointer to the found nodes permutation (integer index)
 */
-int* genetic_tsp(int me, int numIstances, int *cost_matrix, int numNodes, int population, double top, int maxIt, double mutatProb, int earlyStopRounds, double earlyStopParam){
+int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int population, double top, int maxIt, double mutatProb, int earlyStopRounds, double earlyStopParam){
     int i, j, best_num, probCentile, sendTo, recvFrom, *generation, *generation_copy, *generation_rank, *generation_cost, *solution;
     double avg, *lastRounds;
     chrono::high_resolution_clock::time_point t_start, t_end;
@@ -70,9 +70,9 @@ int* genetic_tsp(int me, int numIstances, int *cost_matrix, int numNodes, int po
     }
 
     // GENERATION ITERATION 
-    for(i=0; i<maxIt; ++i){
+    for(i=1; i<=maxIt; ++i){
 #ifdef PRINTS
-        printf("#%d\n",i+1);
+        printf("#%d\n",i);
 #endif
 
         // GENERATE NEW POPULATION WITH MUTATION
@@ -88,7 +88,7 @@ int* genetic_tsp(int me, int numIstances, int *cost_matrix, int numNodes, int po
         t_start = chrono::high_resolution_clock::now();
         rank_generation(generation_rank, generation_cost, generation, cost_matrix, numNodes, population, best_num);
         t_end = chrono::high_resolution_clock::now();
-        exec_time=t_end-t_start;
+        exec_time = t_end-t_start;
 #ifdef PRINTS
         printf("\tranking: %f\n",exec_time.count());
 #endif
@@ -100,21 +100,20 @@ int* genetic_tsp(int me, int numIstances, int *cost_matrix, int numNodes, int po
         }
         lastRounds[i%earlyStopRounds]= avg/AVGELEMS;
 #ifdef PRINTS
-        printf("\tbest %d average travelling cost: %f\n",AVGELEMS,lastRounds[i%earlyStopRounds]);
+        printf("\tbest %d average travelling cost: %f\n",AVGELEMS,lastRounds[(i-1)%earlyStopRounds]);
         printf("\tbest %d standard deviation: %f\n",AVGELEMS,stdDev(lastRounds, earlyStopRounds));
 #endif
         
         //MOVE BEST ROWS TO TOP
         move_top(generation_rank, generation, generation_copy, numNodes, best_num);
-
-        if(!(i%TRANSFERRATE)){
-            sendTo = (me + i/TRANSFERRATE) % numIstances;
-            recvFrom = (me - i/TRANSFERRATE + numinstances) % numinstances;
-            transferReceive_bests(generation, generation_cost, numNodes, best_num, sendTo, recvFrom);
+        if(numInstances>1 && !(i%TRANSFERRATE)){
+            sendTo = (me + i/TRANSFERRATE) % numInstances;
+            recvFrom = (me - i/TRANSFERRATE + numInstances) % numInstances;
+            transferReceive_bests(generation, generation_cost, numNodes, best_num, me, sendTo, recvFrom);
         }
 
         // TEST EARLY STOP (with short-circuit to ensure that lastRounds is filled before computing the stdDev over it)
-        if(i>earlyStopRounds && stdDev(lastRounds, earlyStopRounds)<=earlyStopParam){
+        if(i>=earlyStopRounds && stdDev(lastRounds, earlyStopRounds)<=earlyStopParam){
 #ifdef PRINTS
             printf("\n\t\tEarly stop!\n\n");
 #endif
@@ -133,13 +132,13 @@ int* genetic_tsp(int me, int numIstances, int *cost_matrix, int numNodes, int po
     return solution;
 }
 
-int main(int argc, const char* argv[]){
+int main(int argc, char *argv[]){
     if (argc<8){
         cerr << "need 8 args\n";
         return 1;
     }
 
-    int me,numIstances,numNodes,population,best_num,maxIt,earlyStopRounds,earlyStopParam,*cost_matrix,*solution;
+    int me,numInstances,numNodes,population,best_num,maxIt,earlyStopRounds,earlyStopParam,*cost_matrix,*solution;
     double mutatProb,top;
     const char *input_f;
     chrono::high_resolution_clock::time_point t_start,t_end;
@@ -169,7 +168,7 @@ int main(int argc, const char* argv[]){
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
-    MPI_Comm_size(MPI_COMM_WORLD, &numinstances);
+    MPI_Comm_size(MPI_COMM_WORLD, &numInstances);
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
@@ -178,7 +177,7 @@ int main(int argc, const char* argv[]){
     /////////////////////////////////////////////
     t_start = chrono::high_resolution_clock::now();
     /////////////////////////////////////////////
-    solution = genetic_tsp(me, numIstances, cost_matrix, numNodes, population, top, maxIt, mutatProb, earlyStopRounds, earlyStopParam);
+    solution = genetic_tsp(me, numInstances, cost_matrix, numNodes, population, top, maxIt, mutatProb, earlyStopRounds, earlyStopParam);
     /////////////////////////////////////////////
     t_end = chrono::high_resolution_clock::now();
     /////////////////////////////////////////////
@@ -188,6 +187,8 @@ int main(int argc, const char* argv[]){
     printf("\nTotal execution cost: %f\n\n",exec_time.count());
     //printMatrix(solution, 1, numNodes);
 #endif
+
+    MPI_Finalize();
 
     delete cost_matrix;
     delete solution;

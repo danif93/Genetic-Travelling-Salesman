@@ -15,3 +15,4 @@ earlyStParam=10
 ./omp $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam input.dat
 
 rm gen omp
+

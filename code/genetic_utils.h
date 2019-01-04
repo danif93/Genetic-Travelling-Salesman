@@ -196,6 +196,31 @@ void generate(int *generation, int population, int best_num, int numNodes, int p
     }
 }
 
-void transferReceive_bests(int* generation, int* generation_cost, int numNodes, int best_num, int sendTo, int recvFrom){
+void transferReceive_bests(int* generation, int* generation_cost, int numNodes, int best_num, int me, int sendTo, int recvFrom){
+    int position,buff_size,cost,*permutation;
+    char *buffer;
+    buff_size = (numNodes+1)*sizeof(int);
+    buffer = new char[buff_size];
+    permutation = new int[numNodes];
 
+    MPI_Request request;
+    MPI_Status status;
+
+    position = 0;
+
+    MPI_Pack(&generation_cost[0], 1, MPI_INT, buffer, buff_size, &position, MPI_COMM_WORLD);
+    MPI_Pack(generation, numNodes, MPI_INT, buffer, buff_size, &position, MPI_COMM_WORLD);
+    printf("%d send to %d, cost:%d\n",me,sendTo,generation_cost[0]);
+    MPI_Isend(buffer, position, MPI_PACKED, sendTo, 0, MPI_COMM_WORLD,&request);
+
+    position = 0;
+
+    MPI_Recv(buffer, buff_size, MPI_PACKED, recvFrom, 0, MPI_COMM_WORLD, &status);
+    MPI_Unpack(buffer, buff_size, &position, &cost, 1, MPI_INT, MPI_COMM_WORLD); 
+    MPI_Unpack(buffer, buff_size, &position, permutation, numNodes, MPI_INT, MPI_COMM_WORLD);
+    printf("%d received from %d; cost: %d\n",me,recvFrom,cost);
+    printMatrix(permutation,1,numNodes);
+
+    
+    return;
 }
