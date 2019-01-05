@@ -73,9 +73,9 @@ Compute the permutation cost for the current generation and rank them
 @param  cost_matrix: Pointer to memory that contains the symmetric node-travelling cost matrix
 @param  numNodes: Number of travelling-nodes in the problem
 @param  population: Number of the nodes permutation (possible solution) found at each round
-@param  best_num: Number of best elements that will produce the next generation
+@param  bestNum: Number of best elements that will produce the next generation
 */
-void rank_generation(int *generation_rank, int *generation_cost, int *generation, int *cost_matrix, int numNodes, int population, int best_num){
+void rank_generation(int *generation_rank, int *generation_cost, int *generation, int *cost_matrix, int numNodes, int population, int bestNum){
     int i,j,source,destination;
 
     // COST VECTOR COMPUTATION & RANK INITIALISATION
@@ -108,13 +108,13 @@ Move rows in the generation matrix according to the sorted index array
 @param  generation: Pointer to the permutation matrix (population*nodes) for the current iteration
 @param  generation_copy: Pointer to the auxiliary permutation matrix (temporarily holds the sorted generation)
 @param  numNodes: Number of travelling-nodes in the problem
-@param  best_num: Number of best elements (parents) that will produce the next generation
+@param  bestNum: Number of best elements (parents) that will produce the next generation
 */
-void move_top(int *generation_rank, int *&generation, int *&generation_copy, int numNodes, int best_num){
+void move_top(int *generation_rank, int *&generation, int *&generation_copy, int numNodes, int bestNum){
     int i,*start,*swap;
-    for(i=0; i<best_num; ++i){
+    for(i=0; i<bestNum; ++i){
         start = generation+generation_rank[i]*numNodes;
-        copy(start, start+numNodes, generation_copy+i*numNodes); // maybe memcpy is more efficient
+        copy(start, start+numNodes, generation_copy+i*numNodes);
     }
     swap = generation;
     generation = generation_copy;
@@ -171,56 +171,115 @@ Having the sorted generation matrix, fill it from the last parent index untill t
 
 @param  generation: Pointer to the permutation matrix (population*nodes) for the current iteration
 @param  population: Number of the nodes permutation (possible solution) found at each round
-@param  best_num: Number of best elements (parents) that will produce the next generation
+@param  bestNum: Number of best elements (parents) that will produce the next generation
 @param  numNodes: Number of travelling-nodes in the problem
 @param  mutatProb: probability [0-1] of mutation occurence in the newly generated population element
 */
-void generate(int *generation, int population, int best_num, int numNodes, int probCentile){
+void generate(int *generation, int population, int bestNum, int numNodes, int probCentile){
     int i,parent1,parent2,son;
 
     // fill from bestnum until all population is reached
 #pragma omp parallel for num_threads(NUMTHREADS) private(parent1,parent2,son,i) schedule(static)
-    for(i=0; i<population-best_num; ++i){
-        if (i<best_num) // each best must generate at least one son
+    for(i=0; i<population-bestNum; ++i){
+        if (i<bestNum) // each best must generate at least one son
             parent1 = i;          
         else
-            parent1 = rand()%best_num;
+            parent1 = rand()%bestNum;
 
         do {    // two different parents
-            parent2 = rand()%best_num;
+            parent2 = rand()%bestNum;
         } while(parent2==i);
         
-        son = (best_num+i)*numNodes;
+        son = (bestNum+i)*numNodes;
 
         crossover_firstHalf_withMutation(generation, parent1, parent2, son, numNodes, probCentile);    
     }
 }
 
-void transferReceive_bests(int* generation, int* generation_cost, int numNodes, int best_num, int me, int sendTo, int recvFrom){
-    int position,buff_size,cost,*permutation;
-    char *buffer;
-    buff_size = (numNodes+1)*sizeof(int);
-    buffer = new char[buff_size];
-    permutation = new int[numNodes];
+bool equal_permutations(int *first, int *second, int numNodes){
+    for(int i=0; i<numNodes; ++i){
+        if(first[i] != second[i])
+            return false;
+    }
+    return true;
+}
 
+void transferReceive_bests_between2(int* generation, int* generation_cost, int numNodes, int bestNum, int me, int numInstances, int messageNum){
+    int sendTo, recvFrom;
+
+    sendTo = (me + messageNum) % numInstances;
+    if (sendTo == me)
+        return;
+    recvFrom = (me - messageNum) % numInstances;
+    if(recvFrom<0)
+        recvFrom += numInstances;
+
+    int position,buff_size,recv_cost;
+    char *send_buff, *recv_buff;
     MPI_Request request;
     MPI_Status status;
 
+    buff_size = (numNodes+1)*sizeof(int);
+    send_buff = new char[buff_size];
     position = 0;
 
-    MPI_Pack(&generation_cost[0], 1, MPI_INT, buffer, buff_size, &position, MPI_COMM_WORLD);
-    MPI_Pack(generation, numNodes, MPI_INT, buffer, buff_size, &position, MPI_COMM_WORLD);
-    printf("%d send to %d, cost:%d\n",me,sendTo,generation_cost[0]);
-    MPI_Isend(buffer, position, MPI_PACKED, sendTo, 0, MPI_COMM_WORLD,&request);
+    MPI_Pack(&generation_cost[0], 1, MPI_INT, send_buff, buff_size, &position, MPI_COMM_WORLD);
+    MPI_Pack(generation, numNodes, MPI_INT, send_buff, buff_size, &position, MPI_COMM_WORLD);
+    MPI_Isend(send_buff, position, MPI_PACKED, sendTo, 0, MPI_COMM_WORLD,&request);
 
+    recv_buff = new char[buff_size];
     position = 0;
 
-    MPI_Recv(buffer, buff_size, MPI_PACKED, recvFrom, 0, MPI_COMM_WORLD, &status);
-    MPI_Unpack(buffer, buff_size, &position, &cost, 1, MPI_INT, MPI_COMM_WORLD); 
-    MPI_Unpack(buffer, buff_size, &position, permutation, numNodes, MPI_INT, MPI_COMM_WORLD);
-    printf("%d received from %d; cost: %d\n",me,recvFrom,cost);
-    printMatrix(permutation,1,numNodes);
+    MPI_Recv(recv_buff, buff_size, MPI_PACKED, recvFrom, 0, MPI_COMM_WORLD, &status);
+    MPI_Unpack(recv_buff, buff_size, &position, &recv_cost, 1, MPI_INT, MPI_COMM_WORLD); 
 
-    
+    if (recv_cost < generation_cost[bestNum-1]){
+        MPI_Unpack(recv_buff, buff_size, &position, generation+(bestNum-1)*numNodes, numNodes, MPI_INT, MPI_COMM_WORLD);
+        generation_cost[bestNum-1] = recv_cost;
+    }
+
+    delete send_buff;
+    delete recv_buff;
+    return;
+}
+
+void transferReceive_bests_barrier(int *generation, int *generation_cost, int numNodes, int bestNum, int me, int numInstances){
+    int i,position,buff_size,cost,recv_cost,sendTo,recvFrom,*permutation;
+    char *send_buff, *recv_buff;
+    MPI_Request request;
+    MPI_Status status;
+
+    buff_size = (numNodes+1)*sizeof(int);
+    send_buff = new char[buff_size];
+    recv_buff = new char[buff_size];
+    permutation = new int[numNodes];
+
+    copy(generation, generation+numNodes, permutation);
+    cost = generation_cost[0];
+
+    for(i=1; i<numInstances; i=i<<1){
+        sendTo = (me+i)%numInstances;
+        position = 0;
+        MPI_Pack(&cost, 1, MPI_INT, send_buff, buff_size, &position, MPI_COMM_WORLD);
+        MPI_Pack(permutation, numNodes, MPI_INT, send_buff, buff_size, &position, MPI_COMM_WORLD);
+        MPI_Isend(send_buff, position, MPI_PACKED, sendTo, 0, MPI_COMM_WORLD,&request);
+
+        recvFrom = me-i;
+        if(recvFrom<0)
+            recvFrom += numInstances;
+        position = 0;
+        MPI_Recv(recv_buff, buff_size, MPI_PACKED, recvFrom, 0, MPI_COMM_WORLD, &status);
+        MPI_Unpack(recv_buff, buff_size, &position, &recv_cost, 1, MPI_INT, MPI_COMM_WORLD); 
+
+        if (recv_cost < cost){
+            cost = recv_cost;
+            MPI_Unpack(recv_buff, buff_size, &position, permutation, numNodes, MPI_INT, MPI_COMM_WORLD);
+        }
+    }
+
+    if ((cost <= generation_cost[0]) && !equal_permutations(generation,permutation, numNodes)){
+        copy(permutation, permutation+numNodes, generation+(bestNum-1)*numNodes);
+        generation_cost[bestNum-1] = cost;
+    }
     return;
 }

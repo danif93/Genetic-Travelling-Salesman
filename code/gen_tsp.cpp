@@ -13,7 +13,7 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #include "genetic_utils.h"
 #include "other_funcs.h"
 
-#define AVGELEMS 3  //number of elements from which the average for early-stopping is computed
+#define AVGELEMS 5  //number of elements from which the average for early-stopping is computed
 #define TRANSFERRATE 10
 #define PRINTS
 
@@ -93,23 +93,30 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
         printf("\tranking: %f\n",exec_time.count());
 #endif
 
+        //MOVE BEST ROWS TO TOP
+        move_top(generation_rank, generation, generation_copy, numNodes, best_num);
+
         // compute average of best #AVGELEMS costs
         avg = 0;
         for(j=0; j<AVGELEMS; ++j){
             avg += generation_cost[j];
         }
-        lastRounds[i%earlyStopRounds]= avg/AVGELEMS;
+        lastRounds[(i-1)%earlyStopRounds] = avg/AVGELEMS;
 #ifdef PRINTS
         printf("\tbest %d average travelling cost: %f\n",AVGELEMS,lastRounds[(i-1)%earlyStopRounds]);
         printf("\tbest %d standard deviation: %f\n",AVGELEMS,stdDev(lastRounds, earlyStopRounds));
 #endif
-        
-        //MOVE BEST ROWS TO TOP
-        move_top(generation_rank, generation, generation_copy, numNodes, best_num);
-        if(numInstances>1 && !(i%TRANSFERRATE)){
-            sendTo = (me + i/TRANSFERRATE) % numInstances;
-            recvFrom = (me - i/TRANSFERRATE + numInstances) % numInstances;
-            transferReceive_bests(generation, generation_cost, numNodes, best_num, me, sendTo, recvFrom);
+
+        // EXCHANGE BEST WITH OTHER NODES
+        if(numInstances>1 && !(i%TRANSFERRATE)){    
+            t_start = chrono::high_resolution_clock::now();
+            transferReceive_bests_barrier(generation, generation_cost, numNodes, best_num, me, numInstances);
+            t_end = chrono::high_resolution_clock::now();
+            exec_time = t_end-t_start;
+#ifdef PRINTS
+            printf("\tmessage passing: %f\n",exec_time.count());
+#endif
+            continue;
         }
 
         // TEST EARLY STOP (with short-circuit to ensure that lastRounds is filled before computing the stdDev over it)
@@ -117,7 +124,9 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
 #ifdef PRINTS
             printf("\n\t\tEarly stop!\n\n");
 #endif
-            break;
+            // move to next exchange session (hoping that can help moving out from a fake convergence)
+            // ... moreover other nodes might continue to expect messages
+            i += TRANSFERRATE-(i%TRANSFERRATE)-1;
         }
     }
 
@@ -153,12 +162,12 @@ int main(int argc, char *argv[]){
     earlyStopParam = atof(argv[7]);
     input_f = argv[8];
 
-    if (top<0 || top>1 || 
-        population<=0 || 
-        numNodes <=1 || 
+    if (top<0 || top>1 ||                               // selection percentage from total population
+        population < AVGELEMS ||                        // for early stop averaging purposes
+        numNodes <= 1 ||                                // graph with at least 2 nodes
         maxIt <0 || 
-        mutatProb<0 || mutatProb>1 || 
-        earlyStopRounds>maxIt || earlyStopRounds<=0 || 
+        mutatProb<0 || mutatProb>1 ||                   // probability!
+        earlyStopRounds>maxIt || earlyStopRounds<=0 ||  // latest runs influence
         earlyStopParam<0){
         cerr <<"Invalid arguments!"<< endl;
         return 1;
@@ -169,6 +178,8 @@ int main(int argc, char *argv[]){
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
     MPI_Comm_size(MPI_COMM_WORLD, &numInstances);
+
+    freopen (("proj_dani/code/launch/"+to_string(me)+".txt").c_str(), "w", stdout);
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
