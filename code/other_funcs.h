@@ -65,3 +65,43 @@ void generate2(int *generation, int population, int best_num, int numNodes, doub
     delete son;
 }
 ///////////////////////////////////// END ///////////////////////////////////
+
+/////////////////////////// EXCHANGE BETWEEN TWO NODES //////////////////////////
+void transferReceive_bests_between2(int* generation, int* generation_cost, int numNodes, int bestNum, int me, int numInstances, int messageNum){
+    int sendTo, recvFrom;
+
+    sendTo = (me + messageNum) % numInstances;
+    if (sendTo == me)
+        return;
+    recvFrom = (me - messageNum) % numInstances;
+    if(recvFrom<0)
+        recvFrom += numInstances;
+
+    int position,buff_size,recv_cost;
+    char *send_buff, *recv_buff;
+    MPI_Request request;
+    MPI_Status status;
+
+    buff_size = (numNodes+1)*sizeof(int);
+    send_buff = new char[buff_size];
+    position = 0;
+
+    MPI_Pack(&generation_cost[0], 1, MPI_INT, send_buff, buff_size, &position, MPI_COMM_WORLD);
+    MPI_Pack(generation, numNodes, MPI_INT, send_buff, buff_size, &position, MPI_COMM_WORLD);
+    MPI_Isend(send_buff, position, MPI_PACKED, sendTo, 0, MPI_COMM_WORLD,&request);
+
+    recv_buff = new char[buff_size];
+    position = 0;
+
+    MPI_Recv(recv_buff, buff_size, MPI_PACKED, recvFrom, 0, MPI_COMM_WORLD, &status);
+    MPI_Unpack(recv_buff, buff_size, &position, &recv_cost, 1, MPI_INT, MPI_COMM_WORLD); 
+
+    if (recv_cost < generation_cost[bestNum-1]){
+        MPI_Unpack(recv_buff, buff_size, &position, generation+(bestNum-1)*numNodes, numNodes, MPI_INT, MPI_COMM_WORLD);
+        generation_cost[bestNum-1] = recv_cost;
+    }
+
+    delete send_buff;
+    delete recv_buff;
+    return;
+}
