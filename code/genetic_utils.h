@@ -1,6 +1,6 @@
 /**
 genetic_utils.h
-Purpose: Utility funcytions for gen_tsp.cpp
+Purpose: Utility functions for gen_tsp.cpp
 
 @author Danilo Franco
 */
@@ -10,7 +10,7 @@ Purpose: Utility funcytions for gen_tsp.cpp
 
 #include "sorting_utils.h"
 
-#define PRINTSCOST
+#define PRINTSCOST      // wheter to print temporal costs for the ranking phase
 
 /**
 Random number generator for the std::random_shuffle method of <algorithm>
@@ -226,14 +226,31 @@ void generate(int *generation, int population, int bestNum, int numNodes, int pr
     }
 }
 
-bool equal_permutations(int *first, int *second, int numNodes){
-    for(int i=0; i<numNodes; ++i){
+/**
+Checks wheter two integer arrays of the same length are equals
+
+@param  first: First array to be checked
+@param  second: Second Array to be checked
+@param  len: Arrays length
+
+@return     True iff they are equal, false otherwise
+*/
+bool equal_permutations(int *first, int *second, int len){
+    for(int i=0; i<len; ++i){
         if(first[i] != second[i])
             return false;
     }
     return true;
 }
 
+/**
+Custom MPI_Op for the MPI_AllReduce: checks wheter a buffer (node permutation) of lower cost is received, if so overwrite the held one
+
+@param  in: Received integer buffer of the form [ ...node permutation... , cost]
+@param  out: Ouputted integer buffer of the form [ ...node permutation... , cost]
+@param  len: lenght of the two buffers (in the program always = full permutation length + 1)
+@param  dtype: pointer to the MPI_Datatype of the two buffers (in the program always = MPI_Int)
+*/
 void minimumCost(int *in, int *out, int *len, MPI_Datatype *dtype){
     if(in[*len-1] < out[*len-1]){
         for (int i=0; i<*len; ++i){
@@ -242,6 +259,14 @@ void minimumCost(int *in, int *out, int *len, MPI_Datatype *dtype){
     }
 }
 
+/**
+Performs a custom MPI_Op allReduce: exchange messages with every nodes that will consequently deal with the custom MPI_Op
+
+@param  generation: Pointer to the permutation matrix (population*nodes) for the current iteration
+@param  generation_cost: pointer to the total permutation cost array
+@param  numNodes: Number of travelling-nodes in the problem
+@param  bestNum: Number of best elements (parents) that will produce the next generation
+*/
 void transferReceive_bests_allReduce(int *generation, int *generation_cost, int numNodes, int bestNum){
     int buff_size,*send_buff,*recv_buff;
     MPI_Op op;

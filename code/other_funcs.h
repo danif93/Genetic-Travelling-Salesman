@@ -106,6 +106,7 @@ void transferReceive_bests_between2(int* generation, int* generation_cost, int n
     return;
 }
 
+/////////////////////////// EXCHANGE BETWEEN ALL THE NODES IN A BARRIER-LIKE PROCEDURE //////////////////////////
 void transferReceive_bests_barrier(int *generation, int *generation_cost, int numNodes, int bestNum, int me, int numInstances){
     int i,position,buff_size,cost,recv_cost,sendTo,recvFrom,*permutation;
     char *send_buff, *recv_buff;
