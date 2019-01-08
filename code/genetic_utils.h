@@ -10,6 +10,8 @@ Purpose: Utility funcytions for gen_tsp.cpp
 
 #include "sorting_utils.h"
 
+#define PRINTSCOST
+
 /**
 Random number generator for the std::random_shuffle method of <algorithm>
 
@@ -96,7 +98,12 @@ Compute the permutation cost for the current generation and rank them
 void rank_generation(int *generation_cost, int *&generation, int *&generation_copy, int *cost_matrix, int numNodes, int population, int bestNum, int numThreads){
     int i,j,source,destination,*generation_rank;
 
+    chrono::high_resolution_clock::time_point t_start, t_end;
+    chrono::duration<double> exec_time;
+
     generation_rank = new int[population];
+            
+    t_start = chrono::high_resolution_clock::now();
 
     // COST VECTOR COMPUTATION & RANK INITIALISATION
     fill(generation_cost, generation_cost+population, 0);
@@ -117,10 +124,28 @@ void rank_generation(int *generation_cost, int *&generation, int *&generation_co
         generation_rank[i]=i;
     }
 
+    t_end = chrono::high_resolution_clock::now();
+    exec_time=t_end-t_start;
+    #ifdef PRINTSCOST
+        printf("\t\tinitialisation & paths costs computation: %f\n",exec_time.count());
+    #endif
+
+    t_start = chrono::high_resolution_clock::now();
     sort_vector(generation_rank, generation_cost, population, numThreads);
+    t_end = chrono::high_resolution_clock::now();
+    exec_time=t_end-t_start;
+    #ifdef PRINTSCOST
+        printf("\t\tsorting: %f\n",exec_time.count());
+    #endif
 
     //MOVE BEST ROWS TO TOP
+    t_start = chrono::high_resolution_clock::now();
     move_top(generation_rank, generation, generation_copy, numNodes, bestNum);
+    t_end = chrono::high_resolution_clock::now();
+    exec_time=t_end-t_start;
+    #ifdef PRINTSCOST
+        printf("\t\tmatrix rearranging: %f\n",exec_time.count());
+    #endif
 
     delete generation_rank;
     return;
@@ -209,57 +234,16 @@ bool equal_permutations(int *first, int *second, int numNodes){
     return true;
 }
 
-void transferReceive_bests_barrier(int *generation, int *generation_cost, int numNodes, int bestNum, int me, int numInstances){
-    int i,position,buff_size,cost,recv_cost,sendTo,recvFrom,*permutation;
-    char *send_buff, *recv_buff;
-    MPI_Request request;
-    MPI_Status status;
-
-    buff_size = (numNodes+1)*sizeof(int);
-    send_buff = new char[buff_size];
-    recv_buff = new char[buff_size];
-    permutation = new int[numNodes];
-
-    copy(generation, generation+numNodes, permutation);
-    cost = generation_cost[0];
-
-    for(i=1; i<numInstances; i=i<<1){
-        sendTo = (me+i)%numInstances;
-        position = 0;
-        MPI_Pack(&cost, 1, MPI_INT, send_buff, buff_size, &position, MPI_COMM_WORLD);
-        MPI_Pack(permutation, numNodes, MPI_INT, send_buff, buff_size, &position, MPI_COMM_WORLD);
-        MPI_Isend(send_buff, position, MPI_PACKED, sendTo, 0, MPI_COMM_WORLD,&request);
-
-        recvFrom = me-i;
-        if(recvFrom<0)
-            recvFrom += numInstances;
-        position = 0;
-        MPI_Recv(recv_buff, buff_size, MPI_PACKED, recvFrom, 0, MPI_COMM_WORLD, &status);
-        MPI_Unpack(recv_buff, buff_size, &position, &recv_cost, 1, MPI_INT, MPI_COMM_WORLD); 
-
-        if (recv_cost < cost){
-            cost = recv_cost;
-            MPI_Unpack(recv_buff, buff_size, &position, permutation, numNodes, MPI_INT, MPI_COMM_WORLD);
-        }
-    }
-
-    if ((cost <= generation_cost[0]) && !equal_permutations(generation,permutation, numNodes)){
-        copy(permutation, permutation+numNodes, generation+(bestNum-1)*numNodes);
-        generation_cost[bestNum-1] = cost;
-    }
-    return;
-}
-
-void minimumCost(int *in, int *out, int len, MPI_Datatype *dtype){
-    if(out[len-1] < in[len-1]){
-        for (int i=0; i<len-1; ++i){
-            in[i]=out[i];
+void minimumCost(int *in, int *out, int *len, MPI_Datatype *dtype){
+    if(in[*len-1] < out[*len-1]){
+        for (int i=0; i<*len; ++i){
+            out[i]=in[i];
         }
     }
 }
 
-void transferReceive_bests_allReduce(int *generation, int *generation_cost, int numNodes, int bestNum, int me){
-    int position,buff_size,*send_buff,*recv_buff;
+void transferReceive_bests_allReduce(int *generation, int *generation_cost, int numNodes, int bestNum){
+    int buff_size,*send_buff,*recv_buff;
     MPI_Op op;
 
     buff_size = numNodes+1;
@@ -269,15 +253,9 @@ void transferReceive_bests_allReduce(int *generation, int *generation_cost, int 
     copy(generation, generation+numNodes, send_buff);
     send_buff[numNodes] = generation_cost[0];
 
-    printf("%d send %d\n",me,send_buff[numNodes]);
-    printMatrix(send_buff,1,numNodes);
-
     MPI_Op_create((MPI_User_function *)minimumCost, 1, &op);
 
     MPI_Allreduce(send_buff, recv_buff, buff_size, MPI_INT, op, MPI_COMM_WORLD);
-
-    printf("%d received %d\n",me,recv_buff[numNodes]);
-    printMatrix(recv_buff,1,numNodes);
 
     if (!equal_permutations(generation, recv_buff, numNodes)){
         copy(recv_buff, recv_buff+numNodes, generation+(bestNum-1)*numNodes);

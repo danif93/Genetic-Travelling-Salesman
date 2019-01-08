@@ -16,7 +16,7 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #define NUMTHREADS 1
 #define AVGELEMS 5  //number of elements from which the average for early-stopping is computed
 #define TRANSFERRATE 10
-//#define PRINTSCOST
+#define PRINTSCOST
 //#define PRINTSMAT
 
 /**
@@ -71,7 +71,7 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
 
     // GENERATION ITERATION 
     for(i=1; i<=maxIt; ++i){
-#ifdef PRINTSCOST | PRINTSMAT
+#if defined(PRINTSCOST) || defined(PRINTSMAT)
         printf("#%d\n",i);
 #endif
 
@@ -86,7 +86,7 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
         t_end = chrono::high_resolution_clock::now();
         exec_time=t_end-t_start;
 #ifdef PRINTSCOST
-        printf("\tgeneration: %f\n",exec_time.count());
+        printf("\tgeneration: %f\n\t-------------\n",exec_time.count());
 #endif
 
         // RANKING
@@ -95,7 +95,7 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
         t_end = chrono::high_resolution_clock::now();
         exec_time = t_end-t_start;
 #ifdef PRINTSCOST
-        printf("\tranking: %f\n",exec_time.count());
+        printf("\tranking: %f\n\t-------------\n",exec_time.count());
 #endif
 
         // compute average of best #AVGELEMS costs
@@ -106,26 +106,27 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
         lastRounds[(i-1)%earlyStopRounds] = avg/AVGELEMS;
 #ifdef PRINTSCOST
         printf("\tbest %d average travelling cost: %f\n",AVGELEMS,lastRounds[(i-1)%earlyStopRounds]);
-        printf("\tbest %d standard deviation: %f\n",AVGELEMS,stdDev(lastRounds, earlyStopRounds));
+        printf("\tbest %d standard deviation: %f\n\t-------------\n",AVGELEMS,stdDev(lastRounds, earlyStopRounds));
 #endif
 
         // EXCHANGE BEST WITH OTHER NODES
         if(numInstances>1 && !(i%TRANSFERRATE)){    
             t_start = chrono::high_resolution_clock::now();
-            transferReceive_bests_barrier(generation, generation_cost, numNodes, best_num, me, numInstances);
+            //transferReceive_bests_barrier(generation, generation_cost, numNodes, best_num, me, numInstances);
+            transferReceive_bests_allReduce(generation, generation_cost, numNodes, best_num);
             t_end = chrono::high_resolution_clock::now();
             exec_time = t_end-t_start;
 #ifdef PRINTSCOST
-            printf("\tmessage passing: %f\n",exec_time.count());
+            printf("\tmessage passing: %f\n\t-------------\n",exec_time.count());
 #endif
             continue;
         }
 
         // TEST EARLY STOP (with short-circuit to ensure that lastRounds is filled before computing the stdDev over it)
         if(i>=earlyStopRounds && stdDev(lastRounds, earlyStopRounds)<=earlyStopParam){
-#ifdef PRINTS
+//#ifdef PRINTSCOST
             printf("\n\t\tEarly stop!\n\n");
-#endif
+//#endif
             // move to next exchange session (hoping that can help moving out from a fake convergence)
             // ... moreover other nodes might continue to expect messages
             i += TRANSFERRATE-(i%TRANSFERRATE)-1;

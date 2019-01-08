@@ -105,3 +105,44 @@ void transferReceive_bests_between2(int* generation, int* generation_cost, int n
     delete recv_buff;
     return;
 }
+
+void transferReceive_bests_barrier(int *generation, int *generation_cost, int numNodes, int bestNum, int me, int numInstances){
+    int i,position,buff_size,cost,recv_cost,sendTo,recvFrom,*permutation;
+    char *send_buff, *recv_buff;
+    MPI_Request request;
+    MPI_Status status;
+
+    buff_size = (numNodes+1)*sizeof(int);
+    send_buff = new char[buff_size];
+    recv_buff = new char[buff_size];
+    permutation = new int[numNodes];
+
+    copy(generation, generation+numNodes, permutation);
+    cost = generation_cost[0];
+
+    for(i=1; i<numInstances; i=i<<1){
+        sendTo = (me+i)%numInstances;
+        position = 0;
+        MPI_Pack(&cost, 1, MPI_INT, send_buff, buff_size, &position, MPI_COMM_WORLD);
+        MPI_Pack(permutation, numNodes, MPI_INT, send_buff, buff_size, &position, MPI_COMM_WORLD);
+        MPI_Isend(send_buff, position, MPI_PACKED, sendTo, 0, MPI_COMM_WORLD,&request);
+
+        recvFrom = me-i;
+        if(recvFrom<0)
+            recvFrom += numInstances;
+        position = 0;
+        MPI_Recv(recv_buff, buff_size, MPI_PACKED, recvFrom, 0, MPI_COMM_WORLD, &status);
+        MPI_Unpack(recv_buff, buff_size, &position, &recv_cost, 1, MPI_INT, MPI_COMM_WORLD); 
+
+        if (recv_cost < cost){
+            cost = recv_cost;
+            MPI_Unpack(recv_buff, buff_size, &position, permutation, numNodes, MPI_INT, MPI_COMM_WORLD);
+        }
+    }
+
+    if ((cost <= generation_cost[0]) /*&& !equal_permutations(generation,permutation, numNodes)*/){
+        copy(permutation, permutation+numNodes, generation+(bestNum-1)*numNodes);
+        generation_cost[bestNum-1] = cost;
+    }
+    return;
+}
