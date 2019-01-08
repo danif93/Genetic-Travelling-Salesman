@@ -70,26 +70,26 @@ void merge (int* generation_cost, int* generation_rank, int *temp, int low, int 
     while (i<=mid && j<=high) {
         if (generation_cost[i] <= generation_cost[j]){
             temp[k*2] = generation_cost[i];
-            temp[k*2+1] = generation_rank[i];
-            k++;i++;
+            temp[k*2+1] = generation_rank[i++];
+            k++;
         }
         else{
             temp[k*2] = generation_cost[j];
-            temp[k*2+1] = generation_rank[j];
-            k++;j++;
+            temp[k*2+1] = generation_rank[j++];
+            k++;
         }
     }
         
     while (i<=mid){
         temp[k*2] = generation_cost[i];
-        temp[k*2+1] = generation_rank[i];
-        k++;i++;
+        temp[k*2+1] = generation_rank[i++];
+        k++;
     }
                 
     while (j<=high){
         temp[k*2] = generation_cost[j];
-        temp[k*2+1] = generation_rank[j];
-        k++;j++;
+        temp[k*2+1] = generation_rank[j++];
+        k++;
     }
                 
     for (i=low; i<k; i++){
@@ -107,14 +107,17 @@ void mergesort_help(int* generation_cost, int* generation_rank, int *temp, int l
     }
 }
 
-void mergesort (int* generation_cost, int* generation_rank, int low, int high, int cores, int population) {
-    int q,rem,start,end,kk,ll,hh,k,flag,*temp;
-    temp = new int[population*2];
-    
-    // ############## SORT
-    q = (high+1-low)/cores;   // floor quotient
-    rem = (high+1-low)%cores; // remainder
+void mergesort (int* generation_cost, int* generation_rank, int low, int high, int cores) {
+    int numElems,q,fixRemainder,rem,start,end,k,*temp;
+
+    numElems = high+1-low;
+    temp = new int[numElems*2];
+    q = numElems/cores;   // floor quotient
+    fixRemainder = numElems%cores; // remainder
+
+    ///////////////////////   SORT   ///////////////////////
     start = low;
+    rem = fixRemainder;
 
     for (k=0; k<cores; ++k){
         if (rem){
@@ -130,16 +133,17 @@ void mergesort (int* generation_cost, int* generation_rank, int low, int high, i
     }
     #pragma omp taskwait
     
-    // ############## MERGE
-    start = low;
-    rem = (high+1-low)%cores;
+    ///////////////////////   MERGE   ///////////////////////
+    int flag,hh,ll,kk,*idx;
+
+    rem = fixRemainder;
     k = cores;
     flag = 0;
     hh = low-1;
-    int idx[cores+1]; 
+    idx = new int[cores+1]; 
     idx[0]=low;
 
-    for (kk = 0; kk<cores; ++kk){
+    for (kk=0; kk<cores;){
         ll=hh+1;
         if(rem){
             hh=ll+q;
@@ -148,13 +152,15 @@ void mergesort (int* generation_cost, int* generation_rank, int low, int high, i
         else
             hh=ll+q-1;
 
-        idx[kk+1]=hh;
+        idx[++kk]=hh;
     }
 
     while (k != 1) {
         for(kk=0; kk<k-1; kk+=2) {
-            #pragma omp task shared(idx)        
-            merge(generation_cost, generation_rank, temp, idx[kk]+int(kk!=0), idx[kk+1], idx[kk+2]);
+            #pragma omp task shared(idx)
+            {
+                merge(generation_cost, generation_rank, temp, idx[kk]+(kk!=0), idx[kk+1], idx[kk+2]);
+            }  
         }
         #pragma omp taskwait
 

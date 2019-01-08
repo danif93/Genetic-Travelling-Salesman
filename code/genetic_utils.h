@@ -60,7 +60,7 @@ void sort_vector(int *generation_rank, int *generation_cost, int population, int
     
     #pragma omp parallel num_threads(numThreads)
     #pragma omp single
-    mergesort(generation_cost, generation_rank, low, high, numThreads, population);
+    mergesort(generation_cost, generation_rank, low, high, numThreads);
     //quickSort(generation_rank, generation_cost, low, high);
 }
 
