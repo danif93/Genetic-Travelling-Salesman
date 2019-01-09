@@ -16,8 +16,9 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #define NUMTHREADS 1
 #define AVGELEMS 5  //number of elements from which the average for early-stopping is computed
 #define TRANSFERRATE 10
-#define PRINTSCOST
+//#define PRINTSCOST
 //#define PRINTSMAT
+#define PRINTSGRAPH
 
 /**
 Finds and returns the solution for the tsp
@@ -124,9 +125,9 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
 
         // TEST EARLY STOP (with short-circuit to ensure that lastRounds is filled before computing the stdDev over it)
         if(i>=earlyStopRounds && stdDev(lastRounds, earlyStopRounds)<=earlyStopParam){
-//#ifdef PRINTSCOST
+#ifdef PRINTSCOST
             printf("\n\t\tEarly stop!\n\n");
-//#endif
+#endif
             // move to next exchange session (hoping that can help moving out from a fake convergence)
             // ... moreover other nodes might continue to expect messages
             i += TRANSFERRATE-(i%TRANSFERRATE)-1;
@@ -181,7 +182,7 @@ int main(int argc, char *argv[]){
 
     srand(time(NULL)+me);
 
-    freopen (("proj_dani/code/launch/"+to_string(me)+".txt").c_str(), "w", stdout);
+    freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+", stdout);
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
@@ -199,6 +200,10 @@ int main(int argc, char *argv[]){
 #ifdef PRINTSCOST
     printf("\nTotal execution cost: %f\n\n",exec_time.count());
     //printMatrix(solution, 1, numNodes);
+#endif
+
+#ifdef PRINTSGRAPH
+    printf("%d %f\n",numNodes, exec_time.count());
 #endif
 
     MPI_Finalize();

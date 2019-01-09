@@ -10,7 +10,7 @@ Purpose: Utility functions for gen_tsp.cpp
 
 #include "sorting_utils.h"
 
-#define PRINTSCOST      // wheter to print temporal costs for the ranking phase
+//#define PRINTSCOST      // wheter to print temporal costs for the ranking phase
 
 /**
 Random number generator for the std::random_shuffle method of <algorithm>
