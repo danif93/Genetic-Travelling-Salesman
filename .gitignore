@@ -4,3 +4,5 @@ reads/**
 **/.DS_Store
 *.pages
 common_commands.txt
+
+**/.ipynb_checkpoints

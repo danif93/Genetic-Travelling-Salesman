@@ -13,7 +13,7 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #include "genetic_utils.h"
 #include "other_funcs.h"
 
-#define NUMTHREADS 1
+#define NUMTHREADS 4
 #define AVGELEMS 5  //number of elements from which the average for early-stopping is computed
 #define TRANSFERRATE 10
 //#define PRINTSCOST
@@ -47,7 +47,7 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
     probCentile = mutatProb*100;
     
     lastRounds = new double[earlyStopRounds];
-    solution = new int[numNodes];
+    solution = new int[numNodes+2];
     generation = new int[population*numNodes];
     generation_copy = new int[population*numNodes];
     generation_cost = new int[population];
@@ -67,6 +67,8 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
         printf("Cannot generate anymore: no space in the population for new generations\n");
 #endif
         copy(generation, generation+numNodes, solution);
+        solution[numNodes] = generation_cost[0];
+        solution[numNodes+1] = 0;
         return solution;
     }
 
@@ -77,9 +79,11 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
 #endif
 
 #ifdef PRINTSMAT
-    printMatrix(generation,population,numNodes);
-    printMatrix(generation_cost,1,population);
+        printMatrix(generation,population,numNodes);
+        printMatrix(generation_cost,1,population);
 #endif
+
+        solution[numNodes+1] = 0;
 
         // GENERATE NEW POPULATION WITH MUTATION
         t_start = chrono::high_resolution_clock::now();
@@ -111,9 +115,8 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
 #endif
 
         // EXCHANGE BEST WITH OTHER NODES
-        if(numInstances>1 && !(i%TRANSFERRATE)){    
+        if(numInstances>1 && i!=maxIt && !(i%TRANSFERRATE)){    
             t_start = chrono::high_resolution_clock::now();
-            //transferReceive_bests_barrier(generation, generation_cost, numNodes, best_num, me, numInstances);
             transferReceive_bests_allReduce(generation, generation_cost, numNodes, best_num);
             t_end = chrono::high_resolution_clock::now();
             exec_time = t_end-t_start;
@@ -131,10 +134,12 @@ int* genetic_tsp(int me, int numInstances, int *cost_matrix, int numNodes, int p
             // move to next exchange session (hoping that can help moving out from a fake convergence)
             // ... moreover other nodes might continue to expect messages
             i += TRANSFERRATE-(i%TRANSFERRATE)-1;
+            solution[numNodes+1] = 1;
         }
     }
 
     copy(generation, generation+numNodes, solution);
+    solution[numNodes] = generation_cost[0];
         
     delete lastRounds;
     delete generation;
@@ -152,6 +157,7 @@ int main(int argc, char *argv[]){
 
     int me,numInstances,numNodes,population,best_num,maxIt,earlyStopRounds,earlyStopParam,*cost_matrix,*solution;
     double mutatProb,top;
+    FILE *pFile;
     const char *input_f;
     chrono::high_resolution_clock::time_point t_start,t_end;
     chrono::duration<double> exec_time;
@@ -182,7 +188,8 @@ int main(int argc, char *argv[]){
 
     srand(time(NULL)+me);
 
-    freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+", stdout);
+    //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+", stdout);
+    pFile = fopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+");
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
@@ -203,10 +210,11 @@ int main(int argc, char *argv[]){
 #endif
 
 #ifdef PRINTSGRAPH
-    printf("%d %f\n",numNodes, exec_time.count());
+    fprintf(pFile,"%d %d %d %f %d %d\n",numNodes,population,int(population*top),exec_time.count(),solution[numNodes],solution[numNodes+1]);
 #endif
 
     MPI_Finalize();
+    fclose(pFile);
 
     delete cost_matrix;
     delete solution;
