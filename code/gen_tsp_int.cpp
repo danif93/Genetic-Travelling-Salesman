@@ -10,14 +10,16 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #include "mpi.h"
 
 #include "in_out.h"
-#include "genetic_utils.h"
+#include "genetic_utils_int.h"
 #include "other_funcs.h"
 
 #define AVGELEMS 5  //number of elements from which the average for early-stopping is computed
 #define TRANSFERRATE 10
-//#define PRINTSCOST
+#define DETAILEDCOSTS
 //#define PRINTSMAT
-#define PRINTSGRAPH
+//#define PRINTSGRAPH
+
+FILE *generationFile, *transferFile;
 
 /**
 Finds and returns the solution for the tsp
@@ -62,7 +64,7 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
     rank_generation(generation_cost, generation, generation_copy, cost_matrix, numNodes, population, best_num, numThreads);
 
     if (population==best_num){
-#ifdef PRINTSCOST
+#if 0
         printf("Cannot generate anymore: no space in the population for new generations\n");
 #endif
         copy(generation, generation+numNodes, solution);
@@ -73,7 +75,8 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
 
     // GENERATION ITERATION 
     for(i=1; i<=maxIt; ++i){
-#if defined(PRINTSCOST) || defined(PRINTSMAT)
+//#if defined(DETAILEDCOSTS) || defined(PRINTSMAT)
+#if 0
         printf("#%d\n",i);
 #endif
 
@@ -89,8 +92,11 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
         generate(generation, population, best_num, numNodes, probCentile, numThreads);
         t_end = chrono::high_resolution_clock::now();
         exec_time=t_end-t_start;
-#ifdef PRINTSCOST
+#if 0
         printf("\tgeneration: %f\n\t-------------\n",exec_time.count());
+#endif
+#ifdef DETAILEDCOSTS
+        fprintf(generationFile,"%d %d %d %f\n",numNodes,population,best_num,exec_time.count());
 #endif
 
         // RANKING
@@ -98,7 +104,7 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
         rank_generation(generation_cost, generation, generation_copy, cost_matrix, numNodes, population, best_num, numThreads);
         t_end = chrono::high_resolution_clock::now();
         exec_time = t_end-t_start;
-#ifdef PRINTSCOST
+#if 0
         printf("\tranking: %f\n\t-------------\n",exec_time.count());
 #endif
 
@@ -108,7 +114,7 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
             avg += generation_cost[j];
         }
         lastRounds[(i-1)%earlyStopRounds] = avg/AVGELEMS;
-#ifdef PRINTSCOST
+#if 0
         printf("\tbest %d average travelling cost: %f\n",AVGELEMS,lastRounds[(i-1)%earlyStopRounds]);
         printf("\tbest %d standard deviation: %f\n\t-------------\n",AVGELEMS,stdDev(lastRounds, earlyStopRounds));
 #endif
@@ -119,15 +125,18 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
             transferReceive_bests_allReduce(generation, generation_cost, numNodes, best_num);
             t_end = chrono::high_resolution_clock::now();
             exec_time = t_end-t_start;
-#ifdef PRINTSCOST
+#if 0
             printf("\tmessage passing: %f\n\t-------------\n",exec_time.count());
+#endif
+#ifdef DETAILEDCOSTS
+        fprintf(transferFile,"%d %d %d %f\n",numNodes,population,best_num,exec_time.count());
 #endif
             continue;
         }
 
         // TEST EARLY STOP (with short-circuit to ensure that lastRounds is filled before computing the stdDev over it)
         if(i>=earlyStopRounds && stdDev(lastRounds, earlyStopRounds)<=earlyStopParam){
-#ifdef PRINTSCOST
+#if 0
             printf("\n\t\tEarly stop!\n\n");
 #endif
             // move to next exchange session (hoping that can help moving out from a fake convergence)
@@ -156,7 +165,6 @@ int main(int argc, char *argv[]){
 
     int me,numInstances,numThreads,numNodes,population,best_num,maxIt,earlyStopRounds,earlyStopParam,*cost_matrix,*solution;
     double mutatProb,top;
-    FILE *pFile;
     const char *input_f;
     chrono::high_resolution_clock::time_point t_start,t_end;
     chrono::duration<double> exec_time;
@@ -190,7 +198,12 @@ int main(int argc, char *argv[]){
     srand(time(NULL)+me);
 
     //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+", stdout);
-    pFile = fopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+");
+    generationFile = fopen(("proj_dani/code/results/detailed/generation_"+to_string(me)+".txt").c_str(), "a");
+    transferFile = fopen(("proj_dani/code/results/detailed/transfer_"+to_string(me)+".txt").c_str(), "a");
+    pathComputationFile = fopen(("proj_dani/code/results/detailed/path_"+to_string(me)+".txt").c_str(), "a");
+    sortingFile = fopen(("proj_dani/code/results/detailed/sort_"+to_string(me)+".txt").c_str(), "a");
+    rearrangeFile = fopen(("proj_dani/code/results/detailed/rearrange_"+to_string(me)+".txt").c_str(), "a");
+
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
@@ -205,7 +218,7 @@ int main(int argc, char *argv[]){
     /////////////////////////////////////////////
     exec_time = t_end - t_start;
 
-#ifdef PRINTSCOST
+#if 0
     printf("\nTotal execution cost: %f\n\n",exec_time.count());
     //printMatrix(solution, 1, numNodes);
 #endif
@@ -215,7 +228,12 @@ int main(int argc, char *argv[]){
 #endif
 
     MPI_Finalize();
-    fclose(pFile);
+
+    fclose(generationFile);
+    fclose(transferFile);
+    fclose(pathComputationFile);
+    fclose(sortingFile);
+    fclose(rearrangeFile);
 
     delete cost_matrix;
     delete solution;
