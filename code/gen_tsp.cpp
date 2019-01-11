@@ -7,6 +7,7 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 
 #include <chrono>
 #include <ctime>
+#include <string>
 #include "mpi.h"
 
 #include "in_out.h"
@@ -132,7 +133,9 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
 #endif
             // move to next exchange session (hoping that can help moving out from a fake convergence)
             // ... moreover other nodes might continue to expect messages
-            i += TRANSFERRATE-(i%TRANSFERRATE)-1;
+            if(i<maxIt-TRANSFERRATE){
+                i += TRANSFERRATE-(i%TRANSFERRATE)-1;
+            }
             solution[numNodes+1] = 1;
         }
     }
@@ -158,6 +161,7 @@ int main(int argc, char *argv[]){
     double mutatProb,top;
     FILE *pFile;
     const char *input_f;
+    string outDir;
     chrono::high_resolution_clock::time_point t_start,t_end;
     chrono::duration<double> exec_time;
 
@@ -175,7 +179,7 @@ int main(int argc, char *argv[]){
         top<0 || top>1 ||                               // selection percentage from total population
         population < AVGELEMS ||                        // for early stop averaging purposes
         numNodes <= 1 ||                                // graph with at least 2 nodes
-        maxIt <0 || 
+        maxIt < 0 || 
         mutatProb<0 || mutatProb>1 ||                   // probability!
         earlyStopRounds>maxIt || earlyStopRounds<=0 ||  // latest runs influence
         earlyStopParam<0){
@@ -185,12 +189,29 @@ int main(int argc, char *argv[]){
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
-    MPI_Comm_size(MPI_COMM_WORLD, &numInstances);
+    if(numThreads>1){
+        MPI_Comm_size(MPI_COMM_WORLD, &numInstances);
+    } else {
+        numInstances = 1;
+    }
 
     srand(time(NULL)+me);
 
+    // in order to see convergence if in the last message exchange a node receives a good permutation
+    if(earlyStopRounds>TRANSFERRATE){
+        earlyStopRounds = TRANSFERRATE;
+    }
+
+    if(numThreads==1){
+        outDir = string("proj_dani/code/results/total/sequential/");
+    } else if(numInstances==1){
+        outDir = string("proj_dani/code/results/total/parallel/");
+    } else {
+        outDir = string("proj_dani/code/results/total/parallelMPI/");
+    }
+
     //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+", stdout);
-    pFile = fopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+");
+    pFile = fopen((outDir+to_string(me)+".txt").c_str(), "a");
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);

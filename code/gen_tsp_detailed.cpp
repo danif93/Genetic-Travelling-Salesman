@@ -137,7 +137,9 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
 #endif
             // move to next exchange session (hoping that can help moving out from a fake convergence)
             // ... moreover other nodes might continue to expect messages
-            i += TRANSFERRATE-(i%TRANSFERRATE)-1;
+            if(i<maxIt-TRANSFERRATE){
+                i += TRANSFERRATE-(i%TRANSFERRATE)-1;
+            }
             solution[numNodes+1] = 1;
         }
     }
@@ -198,7 +200,11 @@ int main(int argc, char *argv[]){
 
     srand(time(NULL)+me);
 
-    //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+", stdout);
+    // in order to see convergence if in the last message exchange a node receives a good permutation
+    if(earlyStopRounds>TRANSFERRATE){
+        earlyStopRounds = TRANSFERRATE;
+    }
+
     if(numThreads==1){
         outDir = string("proj_dani/code/results/detailed/sequential/");
     } else if(numInstances==1){
@@ -208,6 +214,7 @@ int main(int argc, char *argv[]){
         transferFile = fopen((outDir+"transfer_"+to_string(me)+".txt").c_str(), "a");
     }
 
+    //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+", stdout);
     generationFile = fopen((outDir+"generation_"+to_string(me)+".txt").c_str(), "a");
     pathComputationFile = fopen((outDir+"path_"+to_string(me)+".txt").c_str(), "a");
     sortingFile = fopen((outDir+"sort_"+to_string(me)+".txt").c_str(), "a");
