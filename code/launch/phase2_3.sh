@@ -19,8 +19,11 @@ for i in 10 50 100;# 300 500 700 1000 1500 2000;
 do
     proj_dani/code/launch/gen $i > proj_dani/code/launch/input.dat
     mpiexec -n 4 -machinefile proj_dani/code/launch/nodelist proj_dani/code/launch/mpi $numThreads $i $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_dani/code/launch/input.dat
+    #sequential on 1 node
     mpiexec -n 1 -machinefile proj_dani/code/launch/nodelist proj_dani/code/launch/mpi_det 1 $i $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_dani/code/launch/input.dat
+    #parallel on 1 node
     mpiexec -n 1 -machinefile proj_dani/code/launch/nodelist proj_dani/code/launch/mpi_det $numThreads $i $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_dani/code/launch/input.dat
+    #parallel on more nodes
     mpiexec -n 4 -machinefile proj_dani/code/launch/nodelist proj_dani/code/launch/mpi_det $numThreads $i $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_dani/code/launch/input.dat
     rm proj_dani/code/launch/input.dat
 done

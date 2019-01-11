@@ -110,7 +110,7 @@ void rank_generation(int *generation_cost, int *&generation, int *&generation_co
     // COST VECTOR COMPUTATION & RANK INITIALISATION
     fill(generation_cost, generation_cost+population, 0);
     // (tests showed that the overhead of handle parallelisation here outweights the benefits even for big matrices 100000x1000)
-//#pragma omp parallel for num_threads(numThreads) private(source,destination,i,j) schedule(static)
+#pragma omp parallel for num_threads(numThreads) private(source,destination,i,j) schedule(static)
     for(i=0; i<population; ++i){
         // cost of last node linked to the first one
         source = generation[i*numNodes+numNodes-1];
