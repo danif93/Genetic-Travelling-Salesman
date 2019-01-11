@@ -128,21 +128,17 @@ void rank_generation(int *generation_cost, int *&generation, int *&generation_co
 
     t_end = chrono::high_resolution_clock::now();
     exec_time=t_end-t_start;
-#if 0
-        printf("\t\tinitialisation & paths costs computation: %f\n",exec_time.count());
-#endif
 #ifdef DETAILEDRANKCOSTS
-        fprintf(pathComputationFile,"%d %d %d %f\n",numNodes,population,bestNum,exec_time.count());
+    //printf("\t\tinitialisation & paths costs computation: %f\n",exec_time.count());
+    fprintf(pathComputationFile,"%d %d %d %f\n",numNodes,population,bestNum,exec_time.count());
 #endif
 
     t_start = chrono::high_resolution_clock::now();
     sort_vector(generation_rank, generation_cost, population, numThreads);
     t_end = chrono::high_resolution_clock::now();
     exec_time=t_end-t_start;
-#if 0
-        printf("\t\tsorting: %f\n",exec_time.count());
-#endif
 #ifdef DETAILEDRANKCOSTS
+        //printf("\t\tsorting: %f\n",exec_time.count());
         fprintf(sortingFile,"%d %d %d %f\n",numNodes,population,bestNum,exec_time.count());
 #endif
 
@@ -151,11 +147,9 @@ void rank_generation(int *generation_cost, int *&generation, int *&generation_co
     move_top(generation_rank, generation, generation_copy, numNodes, bestNum);
     t_end = chrono::high_resolution_clock::now();
     exec_time=t_end-t_start;
-#if 0
-        printf("\t\tmatrix rearranging: %f\n",exec_time.count());
-#endif
 #ifdef DETAILEDRANKCOSTS
-        fprintf(rearrangeFile,"%d %d %d %f\n",numNodes,population,bestNum,exec_time.count());
+    //printf("\t\tmatrix rearranging: %f\n",exec_time.count());
+    fprintf(rearrangeFile,"%d %d %d %f\n",numNodes,population,bestNum,exec_time.count());
 #endif
 
     delete generation_rank;

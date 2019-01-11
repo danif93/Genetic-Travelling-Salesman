@@ -7,10 +7,11 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 
 #include <chrono>
 #include <ctime>
+#include <string>
 #include "mpi.h"
 
 #include "in_out.h"
-#include "genetic_utils_int.h"
+#include "genetic_utils_detailed.h"
 #include "other_funcs.h"
 
 #define AVGELEMS 5  //number of elements from which the average for early-stopping is computed
@@ -75,8 +76,7 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
 
     // GENERATION ITERATION 
     for(i=1; i<=maxIt; ++i){
-//#if defined(DETAILEDCOSTS) || defined(PRINTSMAT)
-#if 0
+#if 0 //#if defined(DETAILEDCOSTS) || defined(PRINTSMAT)
         printf("#%d\n",i);
 #endif
 
@@ -92,10 +92,8 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
         generate(generation, population, best_num, numNodes, probCentile, numThreads);
         t_end = chrono::high_resolution_clock::now();
         exec_time=t_end-t_start;
-#if 0
-        printf("\tgeneration: %f\n\t-------------\n",exec_time.count());
-#endif
 #ifdef DETAILEDCOSTS
+        //printf("\tgeneration: %f\n\t-------------\n",exec_time.count());
         fprintf(generationFile,"%d %d %d %f\n",numNodes,population,best_num,exec_time.count());
 #endif
 
@@ -125,11 +123,9 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
             transferReceive_bests_allReduce(generation, generation_cost, numNodes, best_num);
             t_end = chrono::high_resolution_clock::now();
             exec_time = t_end-t_start;
-#if 0
-            printf("\tmessage passing: %f\n\t-------------\n",exec_time.count());
-#endif
 #ifdef DETAILEDCOSTS
-        fprintf(transferFile,"%d %d %d %f\n",numNodes,population,best_num,exec_time.count());
+            //printf("\tmessage passing: %f\n\t-------------\n",exec_time.count());
+            fprintf(transferFile,"%d %d %d %f\n",numNodes,population,best_num,exec_time.count());
 #endif
             continue;
         }
@@ -148,7 +144,7 @@ int* genetic_tsp(int me, int numInstances, int numThreads, int *cost_matrix, int
 
     copy(generation, generation+numNodes, solution);
     solution[numNodes] = generation_cost[0];
-        
+  
     delete lastRounds;
     delete generation;
     delete generation_copy;
@@ -166,6 +162,7 @@ int main(int argc, char *argv[]){
     int me,numInstances,numThreads,numNodes,population,best_num,maxIt,earlyStopRounds,earlyStopParam,*cost_matrix,*solution;
     double mutatProb,top;
     const char *input_f;
+    string outDir;
     chrono::high_resolution_clock::time_point t_start,t_end;
     chrono::duration<double> exec_time;
 
@@ -193,17 +190,28 @@ int main(int argc, char *argv[]){
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
-    MPI_Comm_size(MPI_COMM_WORLD, &numInstances);
+    if(numThreads>1){
+        MPI_Comm_size(MPI_COMM_WORLD, &numInstances);
+    } else {
+        numInstances = 1;
+    }
 
     srand(time(NULL)+me);
 
     //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+", stdout);
-    generationFile = fopen(("proj_dani/code/results/detailed/generation_"+to_string(me)+".txt").c_str(), "a");
-    transferFile = fopen(("proj_dani/code/results/detailed/transfer_"+to_string(me)+".txt").c_str(), "a");
-    pathComputationFile = fopen(("proj_dani/code/results/detailed/path_"+to_string(me)+".txt").c_str(), "a");
-    sortingFile = fopen(("proj_dani/code/results/detailed/sort_"+to_string(me)+".txt").c_str(), "a");
-    rearrangeFile = fopen(("proj_dani/code/results/detailed/rearrange_"+to_string(me)+".txt").c_str(), "a");
+    if(numThreads==1){
+        outDir = string("proj_dani/code/results/detailed/sequential/");
+    } else if(numInstances==1){
+        outDir = string("proj_dani/code/results/detailed/parallel/");
+    } else {
+        outDir = string("proj_dani/code/results/detailed/parallelMPI/");
+        transferFile = fopen((outDir+"transfer_"+to_string(me)+".txt").c_str(), "a");
+    }
 
+    generationFile = fopen((outDir+"generation_"+to_string(me)+".txt").c_str(), "a");
+    pathComputationFile = fopen((outDir+"path_"+to_string(me)+".txt").c_str(), "a");
+    sortingFile = fopen((outDir+"sort_"+to_string(me)+".txt").c_str(), "a");
+    rearrangeFile = fopen((outDir+"rearrange_"+to_string(me)+".txt").c_str(), "a");
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
@@ -230,10 +238,12 @@ int main(int argc, char *argv[]){
     MPI_Finalize();
 
     fclose(generationFile);
-    fclose(transferFile);
     fclose(pathComputationFile);
     fclose(sortingFile);
     fclose(rearrangeFile);
+    if(transferFile){
+        fclose(transferFile);
+    }
 
     delete cost_matrix;
     delete solution;
