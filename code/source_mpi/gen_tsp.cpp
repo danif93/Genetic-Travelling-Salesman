@@ -7,12 +7,11 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 
 #include <chrono>
 #include <ctime>
-#include <string>
 #include "mpi.h"
 
-#include "in_out.h"
-#include "genetic_utils.h"
-#include "other_funcs.h"
+#include "../in_out.h"
+#include "../genetic_utils.h"
+#include "../other_funcs.h"
 
 #define AVGELEMS 5  //number of elements from which the average for early-stopping is computed
 #define TRANSFERRATE 10
@@ -161,7 +160,6 @@ int main(int argc, char *argv[]){
     double mutatProb,top;
     FILE *pFile;
     const char *input_f;
-    string outDir;
     chrono::high_resolution_clock::time_point t_start,t_end;
     chrono::duration<double> exec_time;
 
@@ -189,11 +187,7 @@ int main(int argc, char *argv[]){
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &me);
-    if(numThreads>1){
-        MPI_Comm_size(MPI_COMM_WORLD, &numInstances);
-    } else {
-        numInstances = 1;
-    }
+    MPI_Comm_size(MPI_COMM_WORLD, &numInstances);
 
     srand(time(NULL)+me);
 
@@ -202,16 +196,8 @@ int main(int argc, char *argv[]){
         earlyStopRounds = TRANSFERRATE;
     }
 
-    if(numThreads==1){
-        outDir = string("proj_dani/code/results/total/sequential/");
-    } else if(numInstances==1){
-        outDir = string("proj_dani/code/results/total/parallel/");
-    } else {
-        outDir = string("proj_dani/code/results/total/parallelMPI/");
-    }
-
     //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+", stdout);
-    pFile = fopen((outDir+to_string(me)+".txt").c_str(), "a");
+    pFile = fopen(("proj_dani/code/results/total/parallelMPI/"+to_string(me)+".txt").c_str(), "a");
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
