@@ -22,6 +22,7 @@ FILE *generationFile, *transferFile;
 /**
 Finds and returns the solution for the tsp
 
+@param  numThreads: Number of processing elements are due to work on each parallel section
 @param  me: Index of the current executing node in the cluster
 @param  numInstances: Amount of nodes currently working on finding the solution
 @param  cost_matrix: Pointer to memory that contains the symmetric node-travelling cost matrix 

@@ -22,8 +22,7 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 /**
 Finds and returns the solution for the tsp
 
-@param  me: Index of the current executing node in the cluster
-@param  numInstances: Amount of nodes currently working on finding the solution
+@param  numThreads: Number of processing elements are due to work on each parallel section
 @param  cost_matrix: Pointer to memory that contains the symmetric node-travelling cost matrix 
 @param  numNodes: Number of travelling-nodes in the problem
 @param  population: Number of the nodes permutation (possible solution) found at each round
@@ -185,7 +184,9 @@ int main(int argc, char *argv[]){
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
-    //printMatrix(cost_matrix, numNodes, numNodes);
+#ifdef PRINTSMAT
+    printMatrix(cost_matrix, numNodes, numNodes);
+#endif
 
     /////////////////////////////////////////////
     t_start = chrono::high_resolution_clock::now();
@@ -198,7 +199,10 @@ int main(int argc, char *argv[]){
 
 #ifdef PRINTSCOST
     printf("\nTotal execution cost: %f\n\n",exec_time.count());
-    //printMatrix(solution, 1, numNodes);
+#endif
+
+#ifdef PRINTSMAT
+    printMatrix(solution, 1, numNodes);
 #endif
 
 #ifdef PRINTSGRAPH

@@ -52,6 +52,7 @@ Sort an array and apply the same operation to an index array in order to keep tr
 @param  generation_rank: Index array
 @param  generation_cost: Sorting array
 @param  population: Array length 
+@param  numThreads: Number of processing elements that are due to work on each parallel section
 */
 void sort_vector(int *generation_rank, int *generation_cost, int population, int numThreads){
     int low,high;
@@ -87,13 +88,14 @@ void move_top(int *generation_rank, int *&generation, int *&generation_copy, int
 /**
 Compute the permutation cost for the current generation and rank them
 
-@param  generation_rank: Pointer to the index array
-@param  generation_cost: pointer to the total permutation cost array
+@param  generation_cost: Pointer to the total permutation cost array
 @param  generation: Pointer to the permutation matrix (population*nodes) for the current iteration
+@param  generation_copy: Pointer to the copied permutation matrix
 @param  cost_matrix: Pointer to memory that contains the symmetric node-travelling cost matrix
 @param  numNodes: Number of travelling-nodes in the problem
 @param  population: Number of the nodes permutation (possible solution) found at each round
 @param  bestNum: Number of best elements that will produce the next generation
+@param  numThreads: Number of processing elements that are due to work on each parallel section
 */
 void rank_generation(int *generation_cost, int *&generation, int *&generation_copy, int *cost_matrix, int numNodes, int population, int bestNum, int numThreads){
     int i,j,source,destination,*generation_rank;
@@ -107,7 +109,6 @@ void rank_generation(int *generation_cost, int *&generation, int *&generation_co
 
     // COST VECTOR COMPUTATION & RANK INITIALISATION
     fill(generation_cost, generation_cost+population, 0);
-    // (tests showed that the overhead of handle parallelisation here outweights the benefits even for big matrices 100000x1000)
 #pragma omp parallel for num_threads(numThreads) private(source,destination,i,j) schedule(static)
     for(i=0; i<population; ++i){
         // cost of last node linked to the first one
@@ -160,7 +161,7 @@ Generates new permutation from two parents: first half from parent1 and all the 
 @param  parent2: index referring to a row in the generation matrix (read)
 @param  son: index referring to a row in the generation matrix (write)
 @param  numNodes: Number of travelling-nodes in the problem
-@param  mutatProb: probability [0-1] of mutation occurence in the newly generated population element
+@param  probCentile: probability [0-100] of mutation occurence in the newly generated population element
 */
 void crossover_firstHalf_withMutation(int *generation, int parent1, int parent2, int son, int numNodes, int probCentile){
     set<int> nodes;
@@ -203,7 +204,8 @@ Having the sorted generation matrix, fill it from the last parent index untill t
 @param  population: Number of the nodes permutation (possible solution) found at each round
 @param  bestNum: Number of best elements (parents) that will produce the next generation
 @param  numNodes: Number of travelling-nodes in the problem
-@param  mutatProb: probability [0-1] of mutation occurence in the newly generated population element
+@param  mutatProb: Probability [0-100] of mutation occurence in the newly generated population element
+@param  numThreads: Number of processing elements that are due to work on each parallel section
 */
 void generate(int *generation, int population, int bestNum, int numNodes, int probCentile, int numThreads){
     int i,parent1,parent2,son;
