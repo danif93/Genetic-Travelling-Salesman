@@ -14,10 +14,10 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #include "../genetic_utils.h"
 #include "../other_funcs.h"
 
-#define AVGELEMS 5  //number of elements from which the average for early-stopping is computed
-//#define PRINTSCOST
-//#define PRINTSMAT
-#define PRINTSGRAPH
+#define AVGELEMS 5      //number of elements from which the average for early-stopping is computed
+//#define PRINTSCOST    // detailed time prints of each phase
+//#define PRINTSMAT     // print population matrix and relative cost at each iteration
+#define PRINTSGRAPH     // print the final computational cost with the setting, its minimum solution cost and convergence boolean
 
 /**
 Finds and returns the solution for the tsp
@@ -33,7 +33,7 @@ Finds and returns the solution for the tsp
             in order to establish convergence
 @param  earlyStopParams: Comparison parameter for early stopping
 
-@return     Pointer to the found nodes permutation (integer index)
+@return     Pointer to the found nodes permutation (integer index) + solution cost + convergence boolean
 */
 int* genetic_tsp(int numThreads, int *cost_matrix, int numNodes, int population, double top, int maxIt, double mutatProb, int earlyStopRounds, double earlyStopParam){
     int i, j, best_num, probCentile, sendTo, recvFrom, *generation, *generation_copy, *generation_cost, *solution;
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]){
         maxIt < 0 || 
         mutatProb<0 || mutatProb>1 ||                   // probability!
         earlyStopRounds>maxIt || earlyStopRounds<=0 ||  // latest runs influence
-        earlyStopParam<0){
+        earlyStopParam<0){                              // standard deviation!
         cerr <<"Invalid arguments!"<< endl;
         return 1;
     }
@@ -179,7 +179,7 @@ int main(int argc, char *argv[]){
         outDir = string("proj_dani/code/results/total/parallel/");
     }
 
-    //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a+", stdout);
+    //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a", stdout);
     pFile = fopen((outDir+to_string(me)+".txt").c_str(), "a");
 
     cost_matrix = new int[numNodes*numNodes];
@@ -188,13 +188,9 @@ int main(int argc, char *argv[]){
     printMatrix(cost_matrix, numNodes, numNodes);
 #endif
 
-    /////////////////////////////////////////////
     t_start = chrono::high_resolution_clock::now();
-    /////////////////////////////////////////////
     solution = genetic_tsp(numThreads, cost_matrix, numNodes, population, top, maxIt, mutatProb, earlyStopRounds, earlyStopParam);
-    /////////////////////////////////////////////
     t_end = chrono::high_resolution_clock::now();
-    /////////////////////////////////////////////
     exec_time = t_end - t_start;
 
 #ifdef PRINTSCOST

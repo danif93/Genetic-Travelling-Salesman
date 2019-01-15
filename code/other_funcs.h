@@ -1,3 +1,10 @@
+/**
+other_funcs.h
+Purpose: container for old versions code that are no longer needed or outdated
+
+@author Danilo Franco
+*/
+
 //////////////////// 1ST VERSION: NEW ALLOCATION WITH COPY ////////////////////////
 void move_top2(int *generation_rank, int *generation, int best_num, int numNodes){
     int i,*start,*copy_mat;

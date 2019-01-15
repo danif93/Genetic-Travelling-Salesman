@@ -4,6 +4,7 @@ Purpose: Utility functions for gen_tsp.cpp
 
 @author Danilo Franco
 */
+
 #include <set>          // collection of distinct elements (used in the generation of a new permutation - nodes unicity)
 #include <cmath>        // rand
 #include <algorithm>    // random_shuffle, copy, fill
@@ -50,7 +51,7 @@ double stdDev(double *array, int len){
 /**
 Sort an array and apply the same operation to an index array in order to keep track of the sorted row positions
 
-@version 2.0 (quickSort)
+@version 3.0 (parallel mergesort)
 @param  generation_rank: Index array
 @param  generation_cost: Sorting array
 @param  population: Array length 
@@ -64,6 +65,7 @@ void sort_vector(int *generation_rank, int *generation_cost, int population, int
     #pragma omp parallel num_threads(numThreads)
     #pragma omp single
     mergesort(generation_cost, generation_rank, low, high, numThreads);
+    //quickSort(generation_rank, generation_cost, low, high);
 }
 
 /**
@@ -208,7 +210,7 @@ Having the sorted generation matrix, fill it from the last parent index untill t
 @param  population: Number of the nodes permutation (possible solution) found at each round
 @param  bestNum: Number of best elements (parents) that will produce the next generation
 @param  numNodes: Number of travelling-nodes in the problem
-@param  mutatProb: Probability [0-100] of mutation occurence in the newly generated population element
+@param  probCentile: Probability [0-100] of mutation occurence in the newly generated population element
 @param  numThreads: Number of processing elements that are due to work on each parallel section
 */
 void generate(int *generation, int population, int bestNum, int numNodes, int probCentile, int numThreads){

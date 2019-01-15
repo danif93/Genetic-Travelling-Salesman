@@ -169,8 +169,9 @@ void swap_intElem(int* a, int* b) {
 
 /**
 This function takes the last number as the pivot and places it such that all the smaller elements are on its left 
-    and the greaters on its right; since all the newborn permutation are put at the end of the generation matrix, taking
-    the last element as the pivot might end up near the best scenario for quicksort (pivot=middle)
+    and the greaters on its right; since all the newborn permutation are put from middle+1 to the end of the generation matrix, taking
+    the middle+1 element as the pivot might end up near the best scenario for quicksort (pivot=middle), surely it happens when 
+    recursively called on a already ordered part
 
 @param  generation_rank: Index array
 @param  generation_cost: Sorting array
@@ -180,8 +181,12 @@ This function takes the last number as the pivot and places it such that all the
 @return     pivot correct position
 */
 int partition (int *generation_rank, int *generation_cost, int low, int high) { 
-    int pivot,i,j;
-    pivot = generation_cost[high];
+    int pivot,pivotIdx,i,j;
+    pivotIdx = (high+low)/2;
+    pivot = generation_cost[pivotIdx];
+    swap_intElem(&generation_cost[pivotIdx], &generation_cost[high]);
+    swap_intElem(&generation_rank[pivotIdx], &generation_rank[high]);
+
     i = low-1; 
   
     for (j=low; j<=high-1; j++) { 
