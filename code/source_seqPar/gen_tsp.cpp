@@ -174,9 +174,9 @@ int main(int argc, char *argv[]){
     srand(time(NULL)+me);
 
     if(numThreads==1){
-        outDir = string("proj_dani/code/results/total/sequential/");
+        outDir = string("proj_HPC/code/results/total/sequential/");
     } else {
-        outDir = string("proj_dani/code/results/total/parallel/");
+        outDir = string("proj_HPC/code/results/total/parallel/");
     }
 
     //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a", stdout);

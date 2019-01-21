@@ -1,3 +1,8 @@
+#!/bin/bash
+#PBS -o out
+#PBS -e err
+#PBS -l select=9:ncpus=28:mpiprocs=1:ompthreads=28 -l place=scatter:excl
+
 rm proj_HPC/code/launch/cluster/err.txt
 
 ########## UTILITIES ##########
@@ -12,7 +17,7 @@ function Compute_Pop_Size(){
 }
 ########## END UTILITIES ##########
 
-tries=9
+nodes_tries=9
 maxIt=10
 numThreads=28
 #numCities=1000
@@ -32,14 +37,14 @@ for numCities in 100 200 300 400 500 600 700 800 900 1000 2000; do
 
 # TOTAL COST - phase 2
     #sequential on 1 node
-    #mpiexec -n $tries -machinefile proj_HPC/code/launch/cluster/nodelist proj_HPC/code/launch/cluster/seqPar 1 $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
+    #mpiexec -n $nodes_tries proj_HPC/code/launch/cluster/seqPar 1 $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
     #parallel on 1 node
-    #mpiexec -n $tries -machinefile proj_HPC/code/launch/cluster/nodelist proj_HPC/code/launch/cluster/seqPar $numThreads $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
+    #mpiexec -n $nodes_tries proj_HPC/code/launch/cluster/seqPar $numThreads $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
 # DETAILED COST - phase 3  
     #sequential on 1 node
-    mpiexec -n $tries -machinefile proj_HPC/code/launch/cluster/nodelist proj_HPC/code/launch/cluster/seqPar_det 1 $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
+    mpiexec -n $nodes_tries proj_HPC/code/launch/cluster/seqPar_det 1 $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
     #parallel on 1 node
-    mpiexec -n $tries -machinefile proj_HPC/code/launch/cluster/nodelist proj_HPC/code/launch/cluster/seqPar_det $numThreads $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
+    mpiexec -n $nodes_tries proj_HPC/code/launch/cluster/seqPar_det $numThreads $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
 done
 
 ########## MPI MULTIPLE EXECUTION ##########
@@ -52,10 +57,10 @@ for numCities in 100 200 300 400 500 600 700 800 900 1000 2000; do
         initialPop=$(Compute_Pop_Size $numCities $pop_prob)
 # TOTAL COST - phase 2
         #parallel on more nodes
-        #mpiexec -n 9 -machinefile proj_HPC/code/launch/cluster/nodelist proj_HPC/code/launch/cluster/mpi $numThreads $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
+        #mpiexec -n $nodes_tries proj_HPC/code/launch/cluster/mpi $numThreads $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
 # DETAILED COST - phase 3
         #parallel on more nodes
-        mpiexec -n 9 -machinefile proj_HPC/code/launch/cluster/nodelist proj_HPC/code/launch/cluster/mpi_det $numThreads $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
+        mpiexec -n $nodes_tries proj_HPC/code/launch/cluster/mpi_det $numThreads $numCities $initialPop $top $maxIt $mutP $earlyStRound $earlyStParam proj_HPC/code/launch/cluster/inputs/$numCities
     done
 done
 

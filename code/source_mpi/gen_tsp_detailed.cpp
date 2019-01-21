@@ -175,11 +175,11 @@ int main(int argc, char *argv[]){
         earlyStopRounds = TRANSFERRATE;
     }
 
-    generationFile = fopen(("proj_dani/code/results/detailed/parallelMPI/generation_"+to_string(me)+".txt").c_str(), "a");
-    pathComputationFile = fopen(("proj_dani/code/results/detailed/parallelMPI/path_"+to_string(me)+".txt").c_str(), "a");
-    sortingFile = fopen(("proj_dani/code/results/detailed/parallelMPI/sort_"+to_string(me)+".txt").c_str(), "a");
-    rearrangeFile = fopen(("proj_dani/code/results/detailed/parallelMPI/rearrange_"+to_string(me)+".txt").c_str(), "a");
-    transferFile = fopen(("proj_dani/code/results/detailed/parallelMPI/transfer_"+to_string(me)+".txt").c_str(), "a");
+    generationFile = fopen(("proj_HPC/code/results/detailed/parallelMPI/generation_"+to_string(me)+".txt").c_str(), "a");
+    pathComputationFile = fopen(("proj_HPC/code/results/detailed/parallelMPI/path_"+to_string(me)+".txt").c_str(), "a");
+    sortingFile = fopen(("proj_HPC/code/results/detailed/parallelMPI/sort_"+to_string(me)+".txt").c_str(), "a");
+    rearrangeFile = fopen(("proj_HPC/code/results/detailed/parallelMPI/rearrange_"+to_string(me)+".txt").c_str(), "a");
+    transferFile = fopen(("proj_HPC/code/results/detailed/parallelMPI/transfer_"+to_string(me)+".txt").c_str(), "a");
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);

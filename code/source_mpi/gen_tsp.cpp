@@ -197,8 +197,8 @@ int main(int argc, char *argv[]){
         earlyStopRounds = TRANSFERRATE;
     }
 
-    //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a", stdout);
-    pFile = fopen(("proj_dani/code/results/total/parallelMPI/"+to_string(me)+".txt").c_str(), "a");
+    //freopen(("proj_HPC/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a", stdout);
+    pFile = fopen(("proj_HPC/code/results/total/parallelMPI/"+to_string(me)+".txt").c_str(), "a");
 
     cost_matrix = new int[numNodes*numNodes];
     readHeatMat(cost_matrix, input_f, numNodes);
