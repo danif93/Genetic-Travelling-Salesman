@@ -46,7 +46,6 @@ done
 mpic++ -std=c++11 -O3 -fopenmp -o proj_dani/code/launch/mpi proj_dani/code/source_mpi/gen_tsp.cpp
 
 for k in $(seq 1 $tries); do
-    echo $k
     for i in 7 8 9; #5 6 7 8 9;
     do
         pop_prob=$(echo "$i/10" | bc -l)

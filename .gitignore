@@ -2,6 +2,7 @@ reads/**
 oldCode/**
 
 **/input.dat
+**/inputs/**
 **/.DS_Store
 *.pages
 common_commands.txt
