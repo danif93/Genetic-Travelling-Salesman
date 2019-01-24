@@ -13,8 +13,8 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #include "../genetic_utils.h"
 #include "../other_funcs.h"
 
-#define AVGELEMS 5      // number of elements from which the average for early-stopping is computed
-#define TRANSFERRATE 10 // how many iterations there are between message exchanging phases
+#define AVGELEMS 10      // number of elements from which the average for early-stopping is computed
+#define TRANSFERRATE 100 // how many iterations there are between message exchanging phases
 //#define PRINTSCOST    // detailed time prints of each phase
 //#define PRINTSMAT     // print population matrix and relative cost at each iteration
 #define PRINTSGRAPH     // print the final computational cost with the setting, its minimum solution cost and convergence boolean

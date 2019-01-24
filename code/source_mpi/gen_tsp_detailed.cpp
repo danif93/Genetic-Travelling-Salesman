@@ -13,7 +13,7 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #include "../genetic_utils_detailed.h"
 #include "../other_funcs.h"
 
-#define AVGELEMS 5  //number of elements from which the average for early-stopping is computed
+#define AVGELEMS 10  //number of elements from which the average for early-stopping is computed
 #define TRANSFERRATE 10
 #define DETAILEDCOSTS
 

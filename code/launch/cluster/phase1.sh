@@ -1,9 +1,9 @@
 #!/bin/bash
 #PBS -o out
 #PBS -e err
-#PBS -l select=6:ncpus=28:mpiprocs=1:ompthreads=28 -l place=scatter:excl
+#PBS -l select=3:ncpus=28:mpiprocs=1:ompthreads=28 -l place=scatter:excl
 
-rm proj_HPC/code/launch/cluster/err.txt
+rm proj_HPC/code/launch/cluster/err.txt proj_HPC/code/launch/cluster/out.txt
 
 ########## UTILITIES ##########
 function Round(){
@@ -17,15 +17,15 @@ function Compute_Pop_Size(){
 }
 ########## END UTILITIES ##########
 
-nodes_tries=6
+nodes_tries=3
 numThreads=28
-numCities=10
+numCities=1000
 #initialPop=10000
 #top=0.5              #percentage of top survivor
-maxIt=10
+maxIt=10000
 mutP=0.5             #probability of mutation
-earlyStRound=9
-earlyStParam=1
+earlyStRound=100
+earlyStParam=100
 
 ########## COST GRAPH GENERATION ##########
 rm proj_HPC/code/launch/cluster/inputs/input_phase1.dat
@@ -49,7 +49,7 @@ done
 ########## MPI MULTIPLE EXECUTION ##########
 mpic++ -std=c++11 -O3 -fopenmp -o proj_HPC/code/launch/cluster/mpi proj_HPC/code/source_mpi/gen_tsp.cpp
 
-for k in $(seq 1 $tries); do
+for k in $(seq 1 $nodes_tries); do
     for i in 1 2 3; do
         pop_prob=$(echo "$i/10" | bc -l)
         initialPop=$(Compute_Pop_Size $numCities $pop_prob)

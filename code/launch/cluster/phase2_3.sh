@@ -1,9 +1,9 @@
 #!/bin/bash
-#PBS -o out
-#PBS -e err
-#PBS -l select=9:ncpus=28:mpiprocs=1:ompthreads=28 -l place=scatter:excl
+#PBS -o out.txt
+#PBS -e err.txt
+#PBS -l select=5:ncpus=28:mpiprocs=1:ompthreads=28 -l place=scatter:excl
 
-rm proj_HPC/code/launch/cluster/err.txt
+rm proj_HPC/code/launch/cluster/err.txt proj_HPC/code/launch/cluster/out.txt
 
 ########## UTILITIES ##########
 function Round(){
@@ -17,12 +17,12 @@ function Compute_Pop_Size(){
 }
 ########## END UTILITIES ##########
 
-nodes_tries=9
-maxIt=10
+nodes_tries=5
 numThreads=28
 #numCities=1000
 #initialPop=10000
-top=0.5              #percentage of top survivor
+top=0.3              #percentage of top survivor
+maxIt=10
 mutP=0.5             #probability of mutation
 earlyStRound=9
 earlyStParam=1
@@ -31,8 +31,8 @@ earlyStParam=1
 #mpic++ -std=c++11 -O3 -fopenmp -o proj_HPC/code/launch/cluster/seqPar proj_HPC/code/source_seqPar/gen_tsp.cpp
 mpic++ -std=c++11 -O3 -fopenmp -o proj_HPC/code/launch/cluster/seqPar_det proj_HPC/code/source_seqPar/gen_tsp_detailed.cpp
 
-for numCities in 100 200 300 400 500 600 700 800 900 1000 2000; do
-    pop_prob= #winning prob
+for numCities in 100 200 300 400 500 600 700 800 900 1000 2000 5000 9000; do
+    pop_prob=0.1 #winning prob
     initialPop=$(Compute_Pop_Size $numCities $pop_prob)
 
 # TOTAL COST - phase 2
@@ -51,9 +51,9 @@ done
 #mpic++ -std=c++11 -O3 -fopenmp -o proj_HPC/code/launch/cluster/mpi proj_HPC/code/source_mpi/gen_tsp.cpp
 mpic++ -std=c++11 -O3 -fopenmp -o proj_HPC/code/launch/cluster/mpi_det proj_HPC/code/source_mpi/gen_tsp_detailed.cpp
 
-for numCities in 100 200 300 400 500 600 700 800 900 1000 2000; do
-    for k in $(seq 1 $tries); do
-        pop_prob= #winning prob
+for numCities in 100 200 300 400 500 600 700 800 900 1000 2000 5000 9000; do
+    for k in $(seq 1 $nodes_tries); do
+        pop_prob=0.1 #winning prob
         initialPop=$(Compute_Pop_Size $numCities $pop_prob)
 # TOTAL COST - phase 2
         #parallel on more nodes
@@ -64,5 +64,5 @@ for numCities in 100 200 300 400 500 600 700 800 900 1000 2000; do
     done
 done
 
-#rm proj_dani/code/launch/cluster/seqPar proj_dani/code/launch/cluster/mpi 
-rm proj_dani/code/launch/cluster/seqPar_det proj_dani/code/launch/cluster/mpi_det 
+#rm proj_HPC/code/launch/cluster/seqPar proj_HPC/code/launch/cluster/mpi 
+rm proj_HPC/code/launch/cluster/seqPar_det proj_HPC/code/launch/cluster/mpi_det 
