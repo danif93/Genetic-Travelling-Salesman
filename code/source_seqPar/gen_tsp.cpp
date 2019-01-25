@@ -31,7 +31,7 @@ Finds and returns the solution for the tsp
 @param  mutatProb: probability [0-1] of mutation occurrence in the newly generated population element
 @param  earlyStopRounds: number of latest iterations from which the average of best AVGELEMS must be computed 
             in order to establish convergence
-@param  earlyStopParams: Comparison parameter for early stopping
+@param  earlyStopParam: Comparison parameter for early stopping
 
 @return     Pointer to the found nodes permutation (integer index) + solution cost + convergence boolean
 */
@@ -179,7 +179,6 @@ int main(int argc, char *argv[]){
         outDir = string("proj_HPC/code/results/total/parallel/");
     }
 
-    //freopen(("proj_dani/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a", stdout);
     pFile = fopen((outDir+to_string(me)+".txt").c_str(), "a");
 
     cost_matrix = new int[numNodes*numNodes];

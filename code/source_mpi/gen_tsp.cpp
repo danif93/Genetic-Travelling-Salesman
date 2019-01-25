@@ -14,7 +14,7 @@ Purpose: Genetic alghorithm approach for the travelling salesman problem
 #include "../other_funcs.h"
 
 #define AVGELEMS 10      // number of elements from which the average for early-stopping is computed
-#define TRANSFERRATE 100 // how many iterations there are between message exchanging phases
+#define TRANSFERRATE 10 // how many iterations there are between message exchanging phases
 //#define PRINTSCOST    // detailed time prints of each phase
 //#define PRINTSMAT     // print population matrix and relative cost at each iteration
 #define PRINTSGRAPH     // print the final computational cost with the setting, its minimum solution cost and convergence boolean
@@ -197,7 +197,6 @@ int main(int argc, char *argv[]){
         earlyStopRounds = TRANSFERRATE;
     }
 
-    //freopen(("proj_HPC/code/results/numNodes/"+to_string(me)+".txt").c_str(), "a", stdout);
     pFile = fopen(("proj_HPC/code/results/total/parallelMPI/"+to_string(me)+".txt").c_str(), "a");
 
     cost_matrix = new int[numNodes*numNodes];
