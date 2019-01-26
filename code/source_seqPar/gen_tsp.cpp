@@ -36,16 +36,17 @@ Finds and returns the solution for the tsp
 @return     Pointer to the found nodes permutation (integer index) + solution cost + convergence boolean
 */
 int* genetic_tsp(int numThreads, int *cost_matrix, int numNodes, int population, double top, int maxIt, double mutatProb, int earlyStopRounds, double earlyStopParam){
-    int i, j, best_num, probCentile, sendTo, recvFrom, *generation, *generation_copy, *generation_cost, *solution;
+    int countIt, i, j, best_num, probCentile, sendTo, recvFrom, *generation, *generation_copy, *generation_cost, *solution;
     double avg, *lastRounds;
     chrono::high_resolution_clock::time_point t_start, t_end;
     chrono::duration<double> exec_time;
 
+    countIt = 0;
     best_num = population*top;
     probCentile = mutatProb*100;
     
     lastRounds = new double[earlyStopRounds];
-    solution = new int[numNodes+2];
+    solution = new int[numNodes+3];
     generation = new int[population*numNodes];
     generation_copy = new int[population*numNodes];
     generation_cost = new int[population];
@@ -68,6 +69,7 @@ int* genetic_tsp(int numThreads, int *cost_matrix, int numNodes, int population,
 #endif
         copy(generation, generation+numNodes, solution);
         solution[numNodes] = generation_cost[0];
+        solution[numNodes+2] = countIt;
         return solution;
     }
 
@@ -82,6 +84,8 @@ int* genetic_tsp(int numThreads, int *cost_matrix, int numNodes, int population,
         printMatrix(generation_cost,1,population);
 #endif
 
+        ++countIt;
+        
         // GENERATE NEW POPULATION WITH MUTATION
         t_start = chrono::high_resolution_clock::now();
         generate(generation, population, best_num, numNodes, probCentile, numThreads);
@@ -123,6 +127,7 @@ int* genetic_tsp(int numThreads, int *cost_matrix, int numNodes, int population,
 
     copy(generation, generation+numNodes, solution);
     solution[numNodes] = generation_cost[0];
+    solution[numNodes+2] = countIt;
         
     delete lastRounds;
     delete generation;
@@ -174,9 +179,9 @@ int main(int argc, char *argv[]){
     srand(time(NULL)+me);
 
     if(numThreads==1){
-        outDir = string("proj_HPC/code/results/total/sequential/");
+        outDir = string("proj_HPC/code/results/total/phase2/sequential/");
     } else {
-        outDir = string("proj_HPC/code/results/total/parallel/");
+        outDir = string("proj_HPC/code/results/total/phase2/parallel/");
     }
 
     pFile = fopen((outDir+to_string(me)+".txt").c_str(), "a");
@@ -201,7 +206,7 @@ int main(int argc, char *argv[]){
 #endif
 
 #ifdef PRINTSGRAPH
-    fprintf(pFile,"%d %d %d %f %d %d\n",numNodes,population,int(population*top),exec_time.count(),solution[numNodes],solution[numNodes+1]);
+    fprintf(pFile,"%d %d %d %f %d %d %d\n",numNodes,population,int(population*top),exec_time.count(),solution[numNodes],solution[numNodes+1],solution[numNodes+2]);
 #endif
 
     MPI_Finalize();
