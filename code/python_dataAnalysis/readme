@@ -1,0 +1,6 @@
+In order to visualise correctly the python code you need to have installed the jupyter notebook application
+and python (v3) with the following libraries (all delivered by either Conda or Pip):
+1. Numpy
+2. Pandas
+3. Matplotlib
+4. Os
