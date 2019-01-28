@@ -1,0 +1,9 @@
+rm proj_HPC/code/results/detailed/parallel/*
+rm proj_HPC/code/results/detailed/sequential/*
+rm proj_HPC/code/results/detailed/parallelMPI/*
+rm proj_HPC/code/results/total/phase1/parallel/*
+rm proj_HPC/code/results/total/phase1/sequential/*
+rm proj_HPC/code/results/total/phase1/parallelMPI/*
+rm proj_HPC/code/results/total/phase2/parallel/*
+rm proj_HPC/code/results/total/phase2/sequential/*
+rm proj_HPC/code/results/total/phase2/parallelMPI/*
